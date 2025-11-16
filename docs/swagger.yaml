@@ -1,0 +1,191 @@
+definitions:
+  model.Application:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      repo_url:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  model.Manifest:
+    properties:
+      application_id:
+        description: 关联 Application
+        type: string
+      branch:
+        description: git branch
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      git_repo:
+        description: 对应 Application repo
+        type: string
+      id:
+        type: string
+      image:
+        description: Docker 镜像地址
+        type: string
+      name:
+        description: application + 日期 + 随机数
+        type: string
+      pipeline_id:
+        description: Tekton PipelineRun ID
+        type: string
+      status:
+        description: running, success, failed
+        type: string
+      steps:
+        description: 每个步骤状态
+        items:
+          $ref: '#/definitions/model.Step'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  model.Step:
+    properties:
+      name:
+        type: string
+      status:
+        description: pending, running, success, failed
+        type: string
+    type: object
+info:
+  contact:
+    email: devflow@example.com
+    name: DevFlow Team
+    url: http://devflow.example.com
+  description: DevFlow CD 平台 REST API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://devflow.example.com/terms/
+  title: DevFlow CD Platform API
+  version: "1.0"
+paths:
+  /api/v1/applications:
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的应用
+      parameters:
+      - description: Application Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Application'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建应用
+      tags:
+      - Application
+  /api/v1/applications/{application_id}/manifests:
+    post:
+      consumes:
+      - application/json
+      description: 根据 Application 创建 Manifest，自动生成名称
+      parameters:
+      - description: Application ID
+        in: path
+        name: application_id
+        required: true
+        type: string
+      - description: Manifest 数据（branch 必填）
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Manifest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Manifest'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建 Manifest
+      tags:
+      - Manifest
+  /api/v1/applications/{id}:
+    delete:
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 删除应用
+      tags:
+      - Application
+    get:
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Application'
+      summary: 获取应用
+      tags:
+      - Application
+    put:
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Application Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Application'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新应用
+      tags:
+      - Application
+schemes:
+- http
+- https
+swagger: "2.0"
