@@ -12,5 +12,6 @@ func RegisterApplicationRoutes(rg *gin.RouterGroup) {
 	app.GET("/:id", api.ApplicationRouteApi.Get)
 	app.PUT("/:id", api.ApplicationRouteApi.Update)
 	app.DELETE("/:id", api.ApplicationRouteApi.Delete)
+	app.GET("/", api.ApplicationRouteApi.List)
 	RegisterManifestRoutes(app)
 }

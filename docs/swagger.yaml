@@ -14,6 +14,29 @@ definitions:
       updatedAt:
         type: string
     type: object
+  model.Job:
+    properties:
+      applicationId:
+        type: string
+      applicationName:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        type: string
+      id:
+        type: string
+      manifestID:
+        type: string
+      manifestName:
+        type: string
+      projectName:
+        type: string
+      type:
+        type: string
+      updatedAt:
+        type: string
+    type: object
   model.Manifest:
     properties:
       application_id:
@@ -50,6 +73,8 @@ definitions:
         type: array
       updatedAt:
         type: string
+      version:
+        type: string
     type: object
   model.Step:
     properties:
@@ -73,6 +98,17 @@ info:
   version: "1.0"
 paths:
   /api/v1/applications:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Application'
+            type: array
+      summary: 获取应用列表
+      tags:
+      - Application
     post:
       consumes:
       - application/json
@@ -96,39 +132,6 @@ paths:
       summary: 创建应用
       tags:
       - Application
-  /api/v1/applications/{application_id}/manifests:
-    post:
-      consumes:
-      - application/json
-      description: 根据 Application 创建 Manifest，自动生成名称
-      parameters:
-      - description: Application ID
-        in: path
-        name: application_id
-        required: true
-        type: string
-      - description: Manifest 数据（branch 必填）
-        in: body
-        name: data
-        required: true
-        schema:
-          $ref: '#/definitions/model.Manifest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.Manifest'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: 创建 Manifest
-      tags:
-      - Manifest
   /api/v1/applications/{id}:
     delete:
       parameters:
@@ -185,6 +188,130 @@ paths:
       summary: 更新应用
       tags:
       - Application
+  /api/v1/jobs:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Job'
+            type: array
+      summary: 获取Job列表
+      tags:
+      - Job
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的Job
+      parameters:
+      - description: Job Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Job'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建Job
+      tags:
+      - Job
+  /api/v1/jobs/{id}:
+    delete:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 删除Job
+      tags:
+      - Job
+    get:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Job'
+      summary: 获取Job
+      tags:
+      - Job
+    put:
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Job Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Job'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新Job
+      tags:
+      - Job
+  /api/v1/manifests:
+    post:
+      consumes:
+      - application/json
+      description: 根据 Application 创建 Manifest，自动生成名称
+      parameters:
+      - description: Application ID
+        in: path
+        name: application_id
+        required: true
+        type: string
+      - description: Manifest 数据（branch 必填）
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Manifest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Manifest'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建 Manifest
+      tags:
+      - Manifest
 schemes:
 - http
 - https

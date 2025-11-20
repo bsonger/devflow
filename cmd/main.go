@@ -3,13 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
 	"github.com/bsonger/devflow/pkg/config"
 	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/otel"
 	"github.com/bsonger/devflow/pkg/router"
+	"github.com/bsonger/devflow/pkg/tekton"
 	"go.uber.org/zap"
 )
 
@@ -33,6 +33,11 @@ func main() {
 	_, err := db.InitMongo(ctx, config.C.Mongo.URI, config.C.Mongo.DBName, logging.Logger)
 	if err != nil {
 		logging.Logger.Fatal("mongo init failed", zap.Error(err))
+	}
+
+	err = tekton.InitTektonClient()
+	if err != nil {
+		logging.Logger.Fatal("tekton init failed", zap.Error(err))
 	}
 
 	logging.Logger.Info("server start")

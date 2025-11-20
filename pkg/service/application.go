@@ -33,3 +33,9 @@ func (s *ApplicationService) Delete(ctx context.Context, id primitive.ObjectID) 
 	app := &model.Application{}
 	return db.Repo.Delete(ctx, app, id)
 }
+
+func (s *ApplicationService) List(ctx context.Context, filter primitive.M) ([]model.Application, error) {
+	var apps []model.Application
+	err := db.Repo.List(ctx, &model.Application{}, filter, &apps)
+	return apps, err
+}

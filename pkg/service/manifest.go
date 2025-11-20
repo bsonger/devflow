@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"github.com/bsonger/devflow/pkg/tekton"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/bsonger/devflow/pkg/db"
@@ -18,6 +19,7 @@ func NewManifestService() *ManifestService {
 
 // CreateManifest 保存 Manifest 到 Mongo
 func (s *ManifestService) CreateManifest(ctx context.Context, m *model.Manifest) (primitive.ObjectID, error) {
+	tekton.CreatePipelineRun(ctx, "devflow-ci", m)
 	err := db.Repo.Create(ctx, m)
 	return m.GetID(), err
 }

@@ -116,3 +116,18 @@ func (h *ApplicationHandler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }
+
+// List
+// @Summary 获取应用列表
+// @Tags    Application
+// @Success 200 {array} model.Application
+// @Router  /api/v1/applications [get]
+func (h *ApplicationHandler) List(c *gin.Context) {
+	apps, err := h.svc.List(c.Request.Context(), primitive.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, apps)
+}

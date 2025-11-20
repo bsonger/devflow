@@ -20,6 +20,8 @@ func NewRouter() *gin.Engine {
 
 	// 3️⃣ 注册 Application 路由
 	RegisterApplicationRoutes(api)
+	RegisterManifestRoutes(api)
+	RegisterJobRoutes(api)
 
 	return r
 }
