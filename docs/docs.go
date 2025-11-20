@@ -319,13 +319,6 @@ const docTemplate = `{
                 "summary": "创建 Manifest",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Application ID",
-                        "name": "application_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
                         "description": "Manifest 数据（branch 必填）",
                         "name": "data",
                         "in": "body",

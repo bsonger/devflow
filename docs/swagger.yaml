@@ -285,11 +285,6 @@ paths:
       - application/json
       description: 根据 Application 创建 Manifest，自动生成名称
       parameters:
-      - description: Application ID
-        in: path
-        name: application_id
-        required: true
-        type: string
       - description: Manifest 数据（branch 必填）
         in: body
         name: data

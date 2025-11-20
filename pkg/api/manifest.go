@@ -23,7 +23,6 @@ func NewManifestHandler() *ManifestHandler {
 // @Tags         Manifest
 // @Accept       json
 // @Produce      json
-// @Param        application_id  path  string             true "Application ID"
 // @Param        data            body  model.Manifest    true "Manifest 数据（branch 必填）"
 // @Success      200  {object}  model.Manifest
 // @Failure      400  {object}  map[string]string
