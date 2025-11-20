@@ -22,9 +22,8 @@ type Config struct {
 
 func Load() error {
 	v := viper.New()
-	v.SetConfigName("config")
+	//v.SetConfigName("config")
 	v.SetConfigType("yaml")
-	v.AddConfigPath("../config/")
 	v.AddConfigPath("./config/")
 	v.AddConfigPath("/etc/devflow/config/")
 

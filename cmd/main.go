@@ -24,7 +24,9 @@ import (
 // @license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 // @schemes		http https
 func main() {
-	config.Load()
+	if err := config.Load(); err != nil {
+		panic(err)
+	}
 	logging.Init()
 
 	ctx := context.Background()
