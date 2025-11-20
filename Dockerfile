@@ -5,6 +5,8 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
+ENV GOPROXY=https://goproxy.cn,direct
+
 # 安装构建依赖
 RUN apk add --no-cache git curl build-base
 
