@@ -9,14 +9,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type JobService struct{}
+var JobService = NewJobService()
 
-func NewJobService() *JobService {
-	return &JobService{}
+type jobService struct{}
+
+func NewJobService() *jobService {
+	return &jobService{}
 }
 
-func (s *JobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
+func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
 	var err error
+
+	application, err := ApplicationService.Get(ctx, job.ApplicationId)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	job.ApplicationName = application.Name
+	manifest, err := ManifestService.Get(ctx, job.ApplicationId)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	job.ManifestName = manifest.Name
+
 	if job.Type == "install" {
 		err = argo.CreateApplication(ctx, job)
 	} else {
@@ -33,22 +47,22 @@ func (s *JobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	return job.GetID(), err
 }
 
-func (s *JobService) Get(ctx context.Context, id primitive.ObjectID) (*model.Job, error) {
+func (s *jobService) Get(ctx context.Context, id primitive.ObjectID) (*model.Job, error) {
 	app := &model.Job{}
 	err := db.Repo.FindByID(ctx, app, id)
 	return app, err
 }
 
-func (s *JobService) Update(ctx context.Context, app *model.Job) error {
+func (s *jobService) Update(ctx context.Context, app *model.Job) error {
 	return db.Repo.Update(ctx, app)
 }
 
-func (s *JobService) Delete(ctx context.Context, id primitive.ObjectID) error {
+func (s *jobService) Delete(ctx context.Context, id primitive.ObjectID) error {
 	app := &model.Job{}
 	return db.Repo.Delete(ctx, app, id)
 }
 
-func (s *JobService) List(ctx context.Context, filter primitive.M) ([]*model.Job, error) {
+func (s *jobService) List(ctx context.Context, filter primitive.M) ([]*model.Job, error) {
 	var apps []*model.Job
 	err := db.Repo.List(ctx, &model.Job{}, filter, &apps)
 	return apps, err

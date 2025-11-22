@@ -12,11 +12,10 @@ import (
 var JobRouteApi = NewJobHandler()
 
 type JobHandler struct {
-	svc *service.JobService
 }
 
 func NewJobHandler() *JobHandler {
-	return &JobHandler{svc: service.NewJobService()}
+	return &JobHandler{}
 }
 
 // Create
@@ -35,7 +34,7 @@ func (h *JobHandler) Create(c *gin.Context) {
 		return
 	}
 	job.WithCreateDefault()
-	id, err := h.svc.Create(c.Request.Context(), job)
+	id, err := service.JobService.Create(c.Request.Context(), job)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -57,7 +56,7 @@ func (h *JobHandler) Get(c *gin.Context) {
 		return
 	}
 
-	job, err := h.svc.Get(c.Request.Context(), id)
+	job, err := service.JobService.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
@@ -88,7 +87,7 @@ func (h *JobHandler) Update(c *gin.Context) {
 
 	job.SetID(id)
 
-	if err := h.svc.Update(c.Request.Context(), &job); err != nil {
+	if err := service.JobService.Update(c.Request.Context(), &job); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -109,7 +108,7 @@ func (h *JobHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.Delete(c.Request.Context(), id); err != nil {
+	if err := service.JobService.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -123,7 +122,7 @@ func (h *JobHandler) Delete(c *gin.Context) {
 // @Success 200 {array} model.Job
 // @Router  /api/v1/jobs [get]
 func (h *JobHandler) List(c *gin.Context) {
-	jobs, err := h.svc.List(c.Request.Context(), primitive.M{})
+	jobs, err := service.JobService.List(c.Request.Context(), primitive.M{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

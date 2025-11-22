@@ -3,11 +3,14 @@ package argo
 import (
 	"context"
 	"fmt"
+	"os"
+
 	appv1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	argoclient "github.com/argoproj/argo-cd/v3/pkg/client/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/bsonger/devflow/pkg/config"
 	"github.com/bsonger/devflow/pkg/model"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var argoCdClient *argoclient.Clientset
@@ -25,6 +28,29 @@ func InitArgocdClient() error {
 // CreateApplication 创建或更新 ArgoCD Application
 func CreateApplication(ctx context.Context, job *model.Job) error {
 	applications := argoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
+	app := GenerateApplication(ctx, job)
+
+	_, err := applications.Create(ctx, app, metav1.CreateOptions{})
+	return err
+}
+
+func UpdateApplication(ctx context.Context, job *model.Job) error {
+	applications := argoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
+	app := GenerateApplication(ctx, job)
+	_, err := applications.Update(ctx, app, metav1.UpdateOptions{})
+	return err
+}
+
+func GenerateApplication(ctx context.Context, job *model.Job) *appv1.Application {
+	env := os.Getenv("env")
+	var path string
+
+	if env != "" {
+		path = fmt.Sprintf("%s/%s/overlays/%s", job.ApplicationName, job.ManifestName, os.Getenv("env"))
+	} else {
+		path = fmt.Sprintf("%s/%s/base", job.ApplicationName, job.ManifestName)
+	}
+
 	app := &appv1.Application{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Application",
@@ -39,7 +65,7 @@ func CreateApplication(ctx context.Context, job *model.Job) error {
 			Source: &appv1.ApplicationSource{
 				RepoURL:        config.C.Repo.Address,
 				TargetRevision: "main",
-				Path:           fmt.Sprintf("%s/%s", config.C.Repo.Path, job.ApplicationName),
+				Path:           path,
 				//Kustomize: &appv1.ApplicationSourceKustomize{
 				//	// 可以设置 namePrefix, images, 带 patch 的 kustomize 等
 				//	//CommonLabels: job.CommonLabels,
@@ -47,7 +73,7 @@ func CreateApplication(ctx context.Context, job *model.Job) error {
 			},
 			Destination: appv1.ApplicationDestination{
 				Server:    "https://kubernetes.default.svc",
-				Namespace: job.ProjectName,
+				Namespace: "apps",
 			},
 			SyncPolicy: &appv1.SyncPolicy{
 				Automated: &appv1.SyncPolicyAutomated{
@@ -57,14 +83,5 @@ func CreateApplication(ctx context.Context, job *model.Job) error {
 			},
 		},
 	}
-
-	_, err := applications.Create(ctx, app, metav1.CreateOptions{})
-	return err
-}
-
-func UpdateApplication(ctx context.Context, job *model.Job) error {
-	applications := argoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
-	app := &appv1.Application{}
-	_, err := applications.Update(ctx, app, metav1.UpdateOptions{})
-	return err
+	return app
 }

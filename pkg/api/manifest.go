@@ -4,22 +4,22 @@ import (
 	"github.com/bsonger/devflow/pkg/model"
 	"github.com/bsonger/devflow/pkg/service"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 )
 
 var ManifestRouteApi = NewManifestHandler()
 
 type ManifestHandler struct {
-	svc *service.ManifestService
 }
 
 func NewManifestHandler() *ManifestHandler {
-	return &ManifestHandler{svc: service.NewManifestService()}
+	return &ManifestHandler{}
 }
 
 // Create
 // @Summary      创建 Manifest
-// @Description  根据 Application 创建 Manifest，自动生成名称
+// @Description  根据 Manifest 创建 Manifest，自动生成名称
 // @Tags         Manifest
 // @Accept       json
 // @Produce      json
@@ -40,18 +40,7 @@ func (h *ManifestHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// 根据 Application 获取 gitRepo
-	application, err := ApplicationRouteApi.svc.Get(c.Request.Context(), m.ApplicationID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "application is not found"})
-		return
-	}
-
-	m.GitRepo = application.RepoURL
-
-	// 自动生成 Manifest 名称
-	m.Name = application.Name
-	m.Version = model.GenerateManifestVersion()
+	//// 根据 Application 获取 gitRepo
 
 	//// 初始化 Steps
 	//m.Steps = []model.Step{
@@ -64,14 +53,51 @@ func (h *ManifestHandler) Create(c *gin.Context) {
 	//m.Status = "running"
 
 	// 保存 Manifest
-	id, err := h.svc.CreateManifest(c.Request.Context(), &m)
+	id, err := service.ManifestService.CreateManifest(c.Request.Context(), &m)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// 异步触发 Pipeline
-	//go h.svc.TriggerPipeline(&m)
+	//go service.ManifestService.TriggerPipeline(&m)
 
 	c.JSON(http.StatusOK, gin.H{"id": id.Hex()})
+}
+
+// List
+// @Summary 获取应用列表
+// @Tags    Manifest
+// @Success 200 {array} model.Manifest
+// @Router  /api/v1/manifests [get]
+func (h *ManifestHandler) List(c *gin.Context) {
+	apps, err := service.ManifestService.List(c.Request.Context(), primitive.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, apps)
+}
+
+// Get
+// @Summary	获取应用
+// @Tags		Manifest
+// @Param		id	path		string	true	"Manifest ID"
+// @Success	200	{object}	model.Manifest
+// @Router		/api/v1/manifests/{id} [get]
+func (h *ManifestHandler) Get(c *gin.Context) {
+	id, err := primitive.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+
+	app, err := service.ManifestService.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, app)
 }

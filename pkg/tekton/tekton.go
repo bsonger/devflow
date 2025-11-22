@@ -53,7 +53,7 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 			},
 		},
 		{
-			Name: "image-name",
+			Name: "name",
 			Value: tknv1.ParamValue{
 				Type:      tknv1.ParamTypeString,
 				StringVal: manifest.Name,
@@ -102,11 +102,10 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 
 	// 创建 PipelineRun
 
-	fmt.Println(TektonClient)
 	created, err := TektonClient.TektonV1().PipelineRuns("tekton-pipelines").Create(context.TODO(), pipelineRun, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	return created, nil
+	return created, err
 }

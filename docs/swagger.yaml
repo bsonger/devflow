@@ -42,6 +42,8 @@ definitions:
       application_id:
         description: 关联 Application
         type: string
+      application_name:
+        type: string
       branch:
         description: git branch
         type: string
@@ -58,7 +60,6 @@ definitions:
         description: Docker 镜像地址
         type: string
       name:
-        description: application + 日期 + 随机数
         type: string
       pipeline_id:
         description: Tekton PipelineRun ID
@@ -280,10 +281,21 @@ paths:
       tags:
       - Job
   /api/v1/manifests:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Manifest'
+            type: array
+      summary: 获取应用列表
+      tags:
+      - Manifest
     post:
       consumes:
       - application/json
-      description: 根据 Application 创建 Manifest，自动生成名称
+      description: 根据 Manifest 创建 Manifest，自动生成名称
       parameters:
       - description: Manifest 数据（branch 必填）
         in: body
@@ -305,6 +317,22 @@ paths:
               type: string
             type: object
       summary: 创建 Manifest
+      tags:
+      - Manifest
+  /api/v1/manifests/{id}:
+    get:
+      parameters:
+      - description: Manifest ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Manifest'
+      summary: 获取应用
       tags:
       - Manifest
 schemes:

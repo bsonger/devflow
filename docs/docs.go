@@ -305,8 +305,25 @@ const docTemplate = `{
             }
         },
         "/api/v1/manifests": {
+            "get": {
+                "tags": [
+                    "Manifest"
+                ],
+                "summary": "获取应用列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Manifest"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
-                "description": "根据 Application 创建 Manifest，自动生成名称",
+                "description": "根据 Manifest 创建 Manifest，自动生成名称",
                 "consumes": [
                     "application/json"
                 ],
@@ -342,6 +359,31 @@ const docTemplate = `{
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/manifests/{id}": {
+            "get": {
+                "tags": [
+                    "Manifest"
+                ],
+                "summary": "获取应用",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Manifest ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Manifest"
                         }
                     }
                 }
@@ -414,6 +456,9 @@ const docTemplate = `{
                     "description": "关联 Application",
                     "type": "string"
                 },
+                "application_name": {
+                    "type": "string"
+                },
                 "branch": {
                     "description": "git branch",
                     "type": "string"
@@ -436,7 +481,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "application + 日期 + 随机数",
                     "type": "string"
                 },
                 "pipeline_id": {

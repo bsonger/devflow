@@ -12,11 +12,10 @@ import (
 var ApplicationRouteApi = NewApplicationHandler()
 
 type ApplicationHandler struct {
-	svc *service.ApplicationService
 }
 
 func NewApplicationHandler() *ApplicationHandler {
-	return &ApplicationHandler{svc: service.NewApplicationService()}
+	return &ApplicationHandler{}
 }
 
 // Create
@@ -35,7 +34,7 @@ func (h *ApplicationHandler) Create(c *gin.Context) {
 		return
 	}
 	app.WithCreateDefault()
-	id, err := h.svc.Create(c.Request.Context(), app)
+	id, err := service.ApplicationService.Create(c.Request.Context(), app)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -57,7 +56,7 @@ func (h *ApplicationHandler) Get(c *gin.Context) {
 		return
 	}
 
-	app, err := h.svc.Get(c.Request.Context(), id)
+	app, err := service.ApplicationService.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
@@ -88,7 +87,7 @@ func (h *ApplicationHandler) Update(c *gin.Context) {
 
 	app.SetID(id)
 
-	if err := h.svc.Update(c.Request.Context(), &app); err != nil {
+	if err := service.ApplicationService.Update(c.Request.Context(), &app); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -109,7 +108,7 @@ func (h *ApplicationHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.Delete(c.Request.Context(), id); err != nil {
+	if err := service.ApplicationService.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -123,7 +122,7 @@ func (h *ApplicationHandler) Delete(c *gin.Context) {
 // @Success 200 {array} model.Application
 // @Router  /api/v1/applications [get]
 func (h *ApplicationHandler) List(c *gin.Context) {
-	apps, err := h.svc.List(c.Request.Context(), primitive.M{})
+	apps, err := service.ApplicationService.List(c.Request.Context(), primitive.M{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

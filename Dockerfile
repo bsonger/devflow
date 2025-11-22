@@ -1,14 +1,14 @@
 # -----------------------------
 # 1️⃣ Builder Stage
 # -----------------------------
-FROM golang:1.25-alpine AS builder
+FROM registry.cn-hangzhou.aliyuncs.com/devflow/golang:1.25 AS builder
 
 WORKDIR /app
 
 ENV GOPROXY=https://goproxy.cn,direct
 
 # 安装构建依赖
-RUN apk add --no-cache git curl build-base
+#RUN apk add --no-cache git curl build-base
 
 # 安装 swag（自动生成 swagger 文档）
 RUN go install github.com/swaggo/swag/cmd/swag@latest
