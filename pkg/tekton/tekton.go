@@ -56,14 +56,14 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 			Name: "name",
 			Value: tknv1.ParamValue{
 				Type:      tknv1.ParamTypeString,
-				StringVal: manifest.Name,
+				StringVal: manifest.ApplicationName,
 			},
 		},
 		{
 			Name: "image-tag",
 			Value: tknv1.ParamValue{
 				Type:      tknv1.ParamTypeString,
-				StringVal: "latest",
+				StringVal: manifest.Version,
 			},
 		},
 	}
@@ -94,6 +94,12 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 					Name: "dockerconfig",
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: "aliyun-docker-config",
+					},
+				},
+				{
+					Name: "ssh",
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: "git-ssh-secret",
 					},
 				},
 			},
