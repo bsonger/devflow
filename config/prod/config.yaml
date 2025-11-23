@@ -10,7 +10,8 @@ log:
   format: "json"   # json | console
 
 otel:
-  endpoint: "http://collector.open-telemetry.svc.cluster.local:4317"
+  endpoint: "http://trace-demo-collector.open-telemetry.svc.cluster.local:4317"
+  insecure: true   # 如果不启用 TLS
   service_name: "devflow"
 
 repo:
