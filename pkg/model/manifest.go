@@ -10,7 +10,7 @@ import (
 
 type Manifest struct {
 	BaseModel       `bson:",inline"`
-	ApplicationID   primitive.ObjectID `json:"application_id"` // 关联 Application
+	ApplicationId   primitive.ObjectID `json:"application_id"` // 关联 Application
 	Name            string             `json:"name"`
 	ApplicationName string             `json:"application_name"`
 	Version         string             `json:"version"`

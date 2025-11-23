@@ -22,7 +22,7 @@ func NewManifestService() *manifestService {
 // CreateManifest 保存 Manifest 到 Mongo
 func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest) (primitive.ObjectID, error) {
 
-	application, err := ApplicationService.Get(ctx, m.ApplicationID)
+	application, err := ApplicationService.Get(ctx, m.ApplicationId)
 	if err != nil {
 		return primitive.NilObjectID, errors.New("application is not found")
 	}

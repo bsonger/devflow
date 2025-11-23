@@ -37,7 +37,22 @@ func CreateApplication(ctx context.Context, job *model.Job) error {
 func UpdateApplication(ctx context.Context, job *model.Job) error {
 	applications := argoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
 	app := GenerateApplication(ctx, job)
-	_, err := applications.Update(ctx, app, metav1.UpdateOptions{})
+	current, err := applications.Get(ctx, job.ApplicationName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	// 3. 保持 name/namespace，替换 spec
+	current.Spec = app.Spec
+	current.Annotations = app.Annotations
+	current.Labels = app.Labels
+
+	// ⚠️ 关键：保留 resourceVersion
+	// Kubernetes Update 必须要这个字段
+	// current.ResourceVersion 已经是 GET 回来的，直接保留即可。
+
+	// 4. Update
+	_, err = applications.Update(ctx, current, metav1.UpdateOptions{})
 	return err
 }
 

@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"github.com/bsonger/devflow/pkg/argo"
-
 	"github.com/bsonger/devflow/pkg/db"
+	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/zap"
 )
 
 var JobService = NewJobService()
@@ -20,16 +21,19 @@ func NewJobService() *jobService {
 func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
 	var err error
 
-	application, err := ApplicationService.Get(ctx, job.ApplicationId)
+	manifest, err := ManifestService.Get(ctx, job.ManifestID)
 	if err != nil {
-		return primitive.NilObjectID, err
-	}
-	job.ApplicationName = application.Name
-	manifest, err := ManifestService.Get(ctx, job.ApplicationId)
-	if err != nil {
+		logging.Logger.Error("Failed to create job", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
 	job.ManifestName = manifest.Name
+
+	application, err := ApplicationService.Get(ctx, manifest.ApplicationId)
+	if err != nil {
+		logging.Logger.Error("Failed to create job", zap.Error(err))
+		return primitive.NilObjectID, err
+	}
+	job.ApplicationName = application.Name
 
 	if job.Type == "install" {
 		err = argo.CreateApplication(ctx, job)
@@ -38,10 +42,13 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	}
 
 	if err != nil {
+		logging.Logger.Error("Failed to create job", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
+	job.WithCreateDefault()
 	err = db.Repo.Create(ctx, job)
 	if err != nil {
+		logging.Logger.Error("Failed to create job", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
 	return job.GetID(), err

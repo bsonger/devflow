@@ -66,6 +66,13 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 				StringVal: manifest.Version,
 			},
 		},
+		{
+			Name: "manifest-name",
+			Value: tknv1.ParamValue{
+				Type:      tknv1.ParamTypeString,
+				StringVal: manifest.Name,
+			},
+		},
 	}
 
 	// 构造 PipelineRun 对象

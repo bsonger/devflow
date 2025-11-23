@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
+	"github.com/bsonger/devflow/pkg/argo"
 	"github.com/bsonger/devflow/pkg/config"
 	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
@@ -40,6 +41,11 @@ func main() {
 	err = tekton.InitTektonClient()
 	if err != nil {
 		logging.Logger.Fatal("tekton init failed", zap.Error(err))
+	}
+	err = argo.InitArgocdClient()
+
+	if err != nil {
+		logging.Logger.Fatal("argo init failed", zap.Error(err))
 	}
 
 	logging.Logger.Info("server start")
