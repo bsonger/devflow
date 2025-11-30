@@ -3,13 +3,13 @@ package argo
 import (
 	"context"
 	"fmt"
+	"github.com/bsonger/devflow/pkg/logging"
 	"os"
 
 	appv1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	argoclient "github.com/argoproj/argo-cd/v3/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/bsonger/devflow/pkg/config"
 	"github.com/bsonger/devflow/pkg/model"
 )
 
@@ -18,10 +18,11 @@ var argoCdClient *argoclient.Clientset
 // InitArgocdClient 初始化 ArgoCD client
 func InitArgocdClient() error {
 	var err error
-	argoCdClient, err = argoclient.NewForConfig(config.KubeConfig)
+	argoCdClient, err = argoclient.NewForConfig(model.KubeConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create argo cd client: %w", err)
 	}
+	logging.Logger.Info("argo cd client initialized")
 	return nil
 }
 
@@ -78,7 +79,7 @@ func GenerateApplication(ctx context.Context, job *model.Job) *appv1.Application
 		Spec: appv1.ApplicationSpec{
 			Project: "default",
 			Source: &appv1.ApplicationSource{
-				RepoURL:        config.C.Repo.Address,
+				RepoURL:        model.C.Repo.Address,
 				TargetRevision: "main",
 				Path:           path,
 				//Kustomize: &appv1.ApplicationSourceKustomize{

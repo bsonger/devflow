@@ -10,9 +10,12 @@ log:
   format: "json"   # json | console
 
 otel:
-  endpoint: "http://collector.open-telemetry.svc.cluster.local:4317"
+  endpoint: "collector.open-telemetry.svc.cluster.local:4317"
   service_name: "devflow"
 
 repo:
   address: "https://github.com/bsonger/manifests.git"
   path: "manifests"
+consul:
+  address: https://consul.bei.com:30000
+  key: app/devflow.yaml

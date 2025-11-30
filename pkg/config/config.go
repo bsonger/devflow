@@ -1,24 +1,21 @@
 package config
 
 import (
+	"context"
 	"fmt"
+	"github.com/bsonger/devflow/pkg/argo"
+	"github.com/bsonger/devflow/pkg/db"
+	"github.com/bsonger/devflow/pkg/logging"
+	"github.com/bsonger/devflow/pkg/model"
+	"github.com/bsonger/devflow/pkg/otel"
+	"github.com/bsonger/devflow/pkg/tekton"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"path/filepath"
 )
-
-var C *Config
-var KubeConfig *rest.Config
-
-type Config struct {
-	Server ServerConfig `mapstructure:"server"`
-	Mongo  MongoConfig  `mapstructure:"mongo"`
-	Log    LogConfig    `mapstructure:"log"`
-	Otel   OtelConfig   `mapstructure:"otel"` // 新增 OTEL
-	Repo   Repo         `mapstructure:"repo"`
-}
 
 func Load() error {
 	v := viper.New()
@@ -31,15 +28,44 @@ func Load() error {
 		return err
 	}
 
-	if err := v.Unmarshal(&C); err != nil {
+	if err := v.Unmarshal(&model.C); err != nil {
 		return err
 	}
 	var err error
-	KubeConfig, err = LoadKubeConfig()
+	model.KubeConfig, err = LoadKubeConfig()
 	if err != nil {
 		return err
 	}
+	reloadConfig()
+	err = InitConsulClient(model.C.Consul)
+	if err != nil {
+		return err
+	}
+	LoadConsulConfigAndMerge(model.C.Consul)
+	WatchConsul(model.C.Consul)
 	return nil
+}
+
+func reloadConfig() {
+	logging.Init()
+
+	ctx := context.Background()
+	otel.Init(model.C.Otel.Endpoint, model.C.Otel.ServiceName)
+
+	_, err := db.InitMongo(ctx, model.C.Mongo.URI, model.C.Mongo.DBName, logging.Logger)
+	if err != nil {
+		logging.Logger.Fatal("mongo init failed", zap.Error(err))
+	}
+
+	err = tekton.InitTektonClient()
+	if err != nil {
+		logging.Logger.Fatal("tekton init failed", zap.Error(err))
+	}
+	err = argo.InitArgocdClient()
+
+	if err != nil {
+		logging.Logger.Fatal("argo init failed", zap.Error(err))
+	}
 }
 
 // LoadKubeConfig 自动加载 kubeconfig（本地）或 InCluster（Pod 内）

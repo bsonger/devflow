@@ -1,16 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
-	"github.com/bsonger/devflow/pkg/argo"
 	"github.com/bsonger/devflow/pkg/config"
-	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
-	"github.com/bsonger/devflow/pkg/otel"
+	"github.com/bsonger/devflow/pkg/model"
 	"github.com/bsonger/devflow/pkg/router"
-	"github.com/bsonger/devflow/pkg/tekton"
 	"go.uber.org/zap"
 )
 
@@ -28,30 +24,11 @@ func main() {
 	if err := config.Load(); err != nil {
 		panic(err)
 	}
-	logging.Init()
 
-	ctx := context.Background()
-	otel.Init(config.C.Otel.Endpoint, config.C.Otel.ServiceName)
-
-	_, err := db.InitMongo(ctx, config.C.Mongo.URI, config.C.Mongo.DBName, logging.Logger)
-	if err != nil {
-		logging.Logger.Fatal("mongo init failed", zap.Error(err))
-	}
-
-	err = tekton.InitTektonClient()
-	if err != nil {
-		logging.Logger.Fatal("tekton init failed", zap.Error(err))
-	}
-	err = argo.InitArgocdClient()
-
-	if err != nil {
-		logging.Logger.Fatal("argo init failed", zap.Error(err))
-	}
-
-	logging.Logger.Info("server start")
 	r := router.NewRouter()
 
-	port := config.C.Server.Port
+	port := model.C.Server.Port
+	logging.Logger.Info("server start")
 	logging.Logger.Info("starting server", zap.Int("port", port))
 	if err := r.Run(fmt.Sprintf(":%d", port)); err != nil {
 		logging.Logger.Fatal("failed to run server", zap.Error(err))

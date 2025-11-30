@@ -1,7 +1,7 @@
 package logging
 
 import (
-	"github.com/bsonger/devflow/pkg/config"
+	"github.com/bsonger/devflow/pkg/model"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -11,7 +11,7 @@ var Logger *zap.Logger
 func Init() {
 	var cfg zap.Config
 
-	if config.C.Log.Format == "json" {
+	if model.C.Log.Format == "json" {
 		cfg = zap.NewProductionConfig()
 	} else {
 		cfg = zap.NewDevelopmentConfig()
@@ -19,7 +19,7 @@ func Init() {
 
 	// 设置日志级别
 	level := zapcore.InfoLevel
-	_ = level.Set(config.C.Log.Level)
+	_ = level.Set(model.C.Log.Level)
 	cfg.Level = zap.NewAtomicLevelAt(level)
 
 	logger, err := cfg.Build()

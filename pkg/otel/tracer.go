@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"github.com/bsonger/devflow/pkg/logging"
 
 	"go.opentelemetry.io/otel/trace"
 
@@ -21,6 +22,7 @@ func Init(endpoint, service string) error {
 	)
 
 	otel.SetTracerProvider(tp)
+	logging.Logger.Info("init otel tracer client")
 	return nil
 }
 

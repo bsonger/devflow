@@ -3,7 +3,7 @@ package tekton
 import (
 	"context"
 	"fmt"
-	"github.com/bsonger/devflow/pkg/config"
+	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	"time"
 
@@ -17,10 +17,11 @@ var TektonClient *tektonclient.Clientset
 
 func InitTektonClient() error {
 	var err error
-	TektonClient, err = tektonclient.NewForConfig(config.KubeConfig)
+	TektonClient, err = tektonclient.NewForConfig(model.KubeConfig)
 	if err != nil {
 		return err
 	}
+	logging.Logger.Info("init tekton client")
 	return nil
 }
 
