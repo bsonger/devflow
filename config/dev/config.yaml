@@ -17,5 +17,5 @@ repo:
   address: "https://github.com/bsonger/manifests.git"
   path: "manifests"
 consul:
-  address: https://consul.bei.com:30000
+  address: http://consul-consul-server.consul.svc.cluster.local:8500
   key: app/devflow.yaml
