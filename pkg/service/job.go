@@ -7,6 +7,8 @@ import (
 	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -19,38 +21,58 @@ func NewJobService() *jobService {
 }
 
 func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
-	var err error
+	tracer := otel.Tracer("devflow-job")
+	ctx, span := tracer.Start(ctx, "CreateJob")
+	defer span.End()
 
+	// 从 Trace Context 自动注入 trace_id 到日志
+	logger := logging.Logger.With(zap.String("trace_id", trace.SpanFromContext(ctx).SpanContext().TraceID().String()))
+
+	// 获取 Manifest
 	manifest, err := ManifestService.Get(ctx, job.ManifestID)
 	if err != nil {
-		logging.Logger.Error("Failed to create job", zap.Error(err))
+		span.RecordError(err)
+		logger.Error("Failed to get manifest", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
 	job.ManifestName = manifest.Name
 
+	// 获取 Application
 	application, err := ApplicationService.Get(ctx, manifest.ApplicationId)
 	if err != nil {
-		logging.Logger.Error("Failed to create job", zap.Error(err))
+		span.RecordError(err)
+		logger.Error("Failed to get application", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
 	job.ApplicationName = application.Name
 
+	// 调用 Argo 创建/更新 Application
+	var argoSpan trace.Span
+	ctx, argoSpan = tracer.Start(ctx, "ArgoCreateOrUpdate")
 	if job.Type == "install" {
 		err = argo.CreateApplication(ctx, job)
 	} else {
 		err = argo.UpdateApplication(ctx, job)
 	}
-
 	if err != nil {
-		logging.Logger.Error("Failed to create job", zap.Error(err))
+		argoSpan.RecordError(err)
+		logger.Error("Failed to create/update application", zap.Error(err))
+		argoSpan.End()
+		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
+	argoSpan.End()
+
+	// 数据库保存
 	job.WithCreateDefault()
 	err = db.Repo.Create(ctx, job)
 	if err != nil {
-		logging.Logger.Error("Failed to create job", zap.Error(err))
+		span.RecordError(err)
+		logger.Error("Failed to create job record", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
+	logger.Info("Created job record", zap.String("job_id", job.ID.String()))
+
 	return job.GetID(), err
 }
 

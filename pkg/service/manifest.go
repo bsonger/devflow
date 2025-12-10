@@ -7,6 +7,7 @@ import (
 	"github.com/bsonger/devflow/pkg/model"
 	"github.com/bsonger/devflow/pkg/tekton"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel"
 )
 
 var ManifestService = NewManifestService()
@@ -21,26 +22,40 @@ func NewManifestService() *manifestService {
 
 // CreateManifest 保存 Manifest 到 Mongo
 func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest) (primitive.ObjectID, error) {
+	tracer := otel.Tracer("devflow-manifest")
+
+	// 🌟 创建 Trace Span
+	ctx, span := tracer.Start(ctx, "CreateManifest")
+	defer span.End()
 
 	application, err := ApplicationService.Get(ctx, m.ApplicationId)
 	if err != nil {
+		span.RecordError(err) // 记录错误到 Trace
 		return primitive.NilObjectID, errors.New("application is not found")
 	}
 
 	m.GitRepo = application.RepoURL
-
-	// 自动生成 Manifest 名称
 	m.ApplicationName = application.Name
-
 	m.Name = model.GenerateManifestVersion(m.ApplicationName)
 	m.WithCreateDefault()
 
+	// 🌟 Tekton PipelineRun Span
+	ctx, tektonSpan := tracer.Start(ctx, "CreatePipelineRun")
 	pipelineRun, err := tekton.CreatePipelineRun(ctx, "devflow-ci", m)
 	if err != nil {
+		tektonSpan.RecordError(err)
+		tektonSpan.End()
+		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
+	tektonSpan.End()
+
 	m.PipelineID = pipelineRun.Name
 	err = db.Repo.Create(ctx, m)
+	if err != nil {
+		span.RecordError(err)
+	}
+
 	return m.GetID(), err
 }
 
