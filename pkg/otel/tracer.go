@@ -3,6 +3,8 @@ package otel
 import (
 	"context"
 	"github.com/bsonger/devflow/pkg/logging"
+	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
 
 	"go.opentelemetry.io/otel/trace"
 
@@ -17,8 +19,16 @@ func Init(endpoint, service string) error {
 		otlptracegrpc.WithInsecure(),
 	)
 
+	res, _ := resource.New(
+		context.Background(),
+		resource.WithAttributes(
+			semconv.ServiceName(service),
+		),
+	)
+
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(res),
 	)
 
 	otel.SetTracerProvider(tp)

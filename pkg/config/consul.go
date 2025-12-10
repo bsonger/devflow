@@ -4,11 +4,11 @@ import (
 	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	"github.com/hashicorp/consul/api"
+	"gopkg.in/yaml.v3"
 	"log"
 	"reflect"
 	"time"
 )
-import "gopkg.in/yaml.v3"
 
 var ConsulClient *api.Client
 var lastIndex uint64
