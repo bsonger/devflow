@@ -36,6 +36,7 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 		return primitive.NilObjectID, err
 	}
 	job.ManifestName = manifest.Name
+	job.ApplicationId = manifest.ApplicationId
 
 	// 获取 Application
 	application, err := ApplicationService.Get(ctx, manifest.ApplicationId)
