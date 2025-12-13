@@ -28,16 +28,16 @@ const (
 
 type Manifest struct {
 	BaseModel       `bson:",inline"`
-	ApplicationId   primitive.ObjectID `json:"application_id"` // 关联 Application
-	Name            string             `json:"name"`
-	ApplicationName string             `json:"application_name"`
-	Version         string             `json:"version"`
-	Branch          string             `json:"branch"`             // git branch
-	GitRepo         string             `json:"git_repo"`           // 对应 Application repo
-	Image           string             `json:"image"`              // Docker 镜像地址
-	PipelineID      string             `json:"pipeline_id"`        // Tekton PipelineRun ID
-	Steps           []ManifestStep     `json:"steps" bson:"steps"` // 每个步骤状态
-	Status          ManifestStatus     `json:"status"`             // running, success, failed
+	ApplicationId   primitive.ObjectID `json:"application_id" bson:"application_id"` // 关联 Application
+	Name            string             `json:"name" bson:"name"`
+	ApplicationName string             `json:"application_name" bson:"application_name"`
+	Version         string             `json:"version" bson:"version"`
+	Branch          string             `json:"branch" bson:"branch"`           // git branch
+	GitRepo         string             `json:"git_repo" bson:"git_repo"`       // 对应 Application repo
+	Image           string             `json:"image" bson:"image"`             // Docker 镜像地址
+	PipelineID      string             `json:"pipeline_id" bson:"pipeline_id"` // Tekton PipelineRun ID
+	Steps           []ManifestStep     `json:"steps" bson:"steps"`             // 每个步骤状态
+	Status          ManifestStatus     `json:"status" bson:"status"`           // running, success, failed
 }
 
 type ManifestStep struct {

@@ -87,12 +87,7 @@ func (r *Repository) List(ctx context.Context, m model.MongoModel, filter bson.M
 	return nil
 }
 
-func (r *Repository) UpdateOne(
-	ctx context.Context,
-	m model.MongoModel,
-	filter bson.M,
-	update bson.M,
-) error {
+func (r *Repository) UpdateOne(ctx context.Context, m model.MongoModel, filter bson.M, update bson.M) error {
 	ctx, span := otel.Start(ctx, "repo.updateOne")
 	defer span.End()
 

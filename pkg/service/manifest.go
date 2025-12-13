@@ -96,7 +96,7 @@ func (s *manifestService) Get(ctx context.Context, id primitive.ObjectID) (*mode
 	return app, err
 }
 
-func (s *manifestService) UpdateStepStatus(ctx context.Context, pipelineID, taskRun string, status model.StepStatus, message string, start, end *time.Time) error {
+func (s *manifestService) UpdateStepStatus(ctx context.Context, pipelineID, taskName string, status model.StepStatus, message string, start, end *time.Time) error {
 
 	update := bson.M{
 		"steps.$.status":  status,
@@ -115,8 +115,8 @@ func (s *manifestService) UpdateStepStatus(ctx context.Context, pipelineID, task
 		ctx,
 		&model.Manifest{},
 		bson.M{
-			"pipeline_id":    pipelineID,
-			"steps.task_run": taskRun,
+			"pipeline_id":     pipelineID,
+			"steps.task_name": taskName,
 		},
 		bson.M{"$set": update},
 	)

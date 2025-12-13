@@ -13,10 +13,10 @@ type MongoModel interface {
 }
 
 type BaseModel struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	CreatedAt time.Time          `bson:"created_at"`
-	UpdatedAt time.Time          `bson:"updated_at"`
-	DeletedAt *time.Time         `bson:"deleted_at,omitempty"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
+	DeletedAt *time.Time         `bson:"deleted_at,omitempty" json:"deleted_at,omitempty"`
 }
 
 func (b BaseModel) GetID() primitive.ObjectID    { return b.ID }

@@ -3,7 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
-
+	"github.com/bsonger/devflow/pkg/logging"
+	"go.uber.org/zap"
 	"time"
 
 	tknv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
@@ -48,6 +49,12 @@ func Start(ctx context.Context) error {
 func onTaskRun(obj interface{}) {
 	tr := obj.(*v1.TaskRun)
 	ctx := context.Background()
+	logging.Logger.Info("TaskRun event",
+		zap.String("taskRun", tr.Name),
+		zap.String("pipelineRun", tr.Labels["tekton.dev/pipelineRun"]),
+		zap.String("pipelineTask", tr.Labels["tekton.dev/pipelineTask"]),
+		zap.String("taskRef", tr.Spec.TaskRef.Name),
+	)
 
 	pipelineID := tr.Labels["tekton.dev/pipelineRun"]
 	taskRun := tr.Name
@@ -66,15 +73,15 @@ func onTaskRun(obj interface{}) {
 	switch cond.Status {
 	case corev1.ConditionUnknown:
 		start := tr.Status.StartTime.Time
-		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, taskRun, model.StepRunning, cond.Message, &start, nil)
+		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, tr.Labels["tekton.dev/pipelineTask"], model.StepRunning, cond.Message, &start, nil)
 
 	case corev1.ConditionTrue:
 		end := tr.Status.CompletionTime.Time
-		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, taskRun, model.StepSucceeded, cond.Message, nil, &end)
+		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, tr.Labels["tekton.dev/pipelineTask"], model.StepSucceeded, cond.Message, nil, &end)
 
 	case corev1.ConditionFalse:
 		end := tr.Status.CompletionTime.Time
-		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, taskRun, model.StepFailed, cond.Message, nil, &end)
+		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, tr.Labels["tekton.dev/pipelineTask"], model.StepFailed, cond.Message, nil, &end)
 	}
 }
 
