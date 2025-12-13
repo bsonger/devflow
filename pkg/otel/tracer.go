@@ -2,9 +2,11 @@ package otel
 
 import (
 	"context"
+	"fmt"
 	"github.com/bsonger/devflow/pkg/logging"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.37.0"
+	"os"
 
 	"go.opentelemetry.io/otel/trace"
 
@@ -23,6 +25,8 @@ func Init(endpoint, service string) error {
 		context.Background(),
 		resource.WithAttributes(
 			semconv.ServiceName(service),
+			semconv.ServiceNamespace("app"),
+			semconv.DeploymentEnvironmentName(os.Getenv("env")),
 		),
 	)
 
@@ -32,7 +36,7 @@ func Init(endpoint, service string) error {
 	)
 
 	otel.SetTracerProvider(tp)
-	logging.Logger.Info("init otel tracer client")
+	logging.Logger.Info(fmt.Sprintf("OpenTelemetry tracing enabled, service name: %s", service))
 	return nil
 }
 

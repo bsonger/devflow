@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/bsonger/devflow/pkg/logging"
+	"github.com/bsonger/devflow/pkg/otel"
 	"go.uber.org/zap"
 	"time"
 
@@ -142,7 +143,8 @@ func GetPipeline(ctx context.Context, namespace string, name string) (*v1.Pipeli
 }
 
 func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model.Manifest) (*tknv1.PipelineRun, error) {
-
+	ctx, span := otel.Start(ctx, "createPipelineRun")
+	defer span.End()
 	// 随机生成一个 PipelineRun 名称
 	prName := fmt.Sprintf("%s-run-%d", pipelineName, time.Now().Unix())
 
