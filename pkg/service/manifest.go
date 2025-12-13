@@ -148,6 +148,13 @@ func BuildStepsFromPipeline(pipeline *v1.Pipeline) []model.ManifestStep {
 		})
 	}
 
+	for _, task := range pipeline.Spec.Finally {
+		steps = append(steps, model.ManifestStep{
+			TaskName: task.Name,
+			Status:   model.StepPending,
+		})
+	}
+
 	return steps
 }
 

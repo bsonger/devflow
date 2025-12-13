@@ -26,13 +26,23 @@ func Start(ctx context.Context) error {
 	trInformer := factory.Tekton().V1().TaskRuns().Informer()
 
 	prInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    onPipelineRun,
-		UpdateFunc: func(_, newObj interface{}) { onPipelineRun(newObj) },
+		AddFunc: onPipelineRun,
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			if oldObj == newObj {
+				return
+			}
+			onPipelineRun(newObj)
+		},
 	})
 
 	trInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    onTaskRun,
-		UpdateFunc: func(_, newObj interface{}) { onTaskRun(newObj) },
+		AddFunc: onTaskRun,
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			if oldObj == newObj {
+				return
+			}
+			onTaskRun(newObj)
+		},
 	})
 
 	go factory.Start(ctx.Done())
@@ -49,7 +59,7 @@ func Start(ctx context.Context) error {
 func onTaskRun(obj interface{}) {
 	tr := obj.(*v1.TaskRun)
 	ctx := context.Background()
-	logging.Logger.Info("TaskRun event",
+	logging.Logger.Debug("TaskRun event",
 		zap.String("taskRun", tr.Name),
 		zap.String("pipelineRun", tr.Labels["tekton.dev/pipelineRun"]),
 		zap.String("pipelineTask", tr.Labels["tekton.dev/pipelineTask"]),
@@ -58,7 +68,7 @@ func onTaskRun(obj interface{}) {
 
 	pipelineID := tr.Labels["tekton.dev/pipelineRun"]
 	taskRun := tr.Name
-	taskName := tr.Spec.TaskRef.Name
+	taskName := tr.Labels["tekton.dev/pipelineTask"]
 
 	// 1️⃣ 绑定 TaskRun
 	_ = ManifestService.BindTaskRun(
@@ -73,15 +83,15 @@ func onTaskRun(obj interface{}) {
 	switch cond.Status {
 	case corev1.ConditionUnknown:
 		start := tr.Status.StartTime.Time
-		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, tr.Labels["tekton.dev/pipelineTask"], model.StepRunning, cond.Message, &start, nil)
+		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, taskName, model.StepRunning, cond.Message, &start, nil)
 
 	case corev1.ConditionTrue:
 		end := tr.Status.CompletionTime.Time
-		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, tr.Labels["tekton.dev/pipelineTask"], model.StepSucceeded, cond.Message, nil, &end)
+		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, taskName, model.StepSucceeded, cond.Message, nil, &end)
 
 	case corev1.ConditionFalse:
 		end := tr.Status.CompletionTime.Time
-		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, tr.Labels["tekton.dev/pipelineTask"], model.StepFailed, cond.Message, nil, &end)
+		_ = ManifestService.UpdateStepStatus(ctx, pipelineID, taskName, model.StepFailed, cond.Message, nil, &end)
 	}
 }
 
@@ -105,8 +115,7 @@ func onPipelineRun(obj interface{}) {
 	}
 }
 
-func GetPipeline(ctx context.Context, namespace string, name string,
-) (*v1.Pipeline, error) {
+func GetPipeline(ctx context.Context, namespace string, name string) (*v1.Pipeline, error) {
 	return client.TektonClient.TektonV1().Pipelines(namespace).Get(ctx, name, metav1.GetOptions{})
 }
 
