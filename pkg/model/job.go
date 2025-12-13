@@ -13,6 +13,7 @@ type Job struct {
 	ManifestID      primitive.ObjectID `bson:"manifest_id" json:"manifest_id"`
 	ManifestName    string             `bson:"manifest_name" json:"manifest_name"`
 	Type            string             `bson:"type" json:"type"`
+	Status          string             `bson:"status" json:"status"`
 }
 
 func (*Job) CollectionName() string { return "job" }

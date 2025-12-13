@@ -69,6 +69,18 @@ func onTaskRun(obj interface{}) {
 	pipelineID := tr.Labels["tekton.dev/pipelineRun"]
 	taskRun := tr.Name
 	taskName := tr.Labels["tekton.dev/pipelineTask"]
+	manifest, err := ManifestService.GetManifestByPipelineID(ctx, pipelineID)
+
+	if err != nil {
+		logging.Logger.Error(fmt.Sprintf("Failed to get Manifest by PipelineID failed: %s", pipelineID), zap.Error(err))
+		return
+	}
+	manifestStep := manifest.GetStep(taskName)
+
+	if manifestStep == nil || manifestStep.Status == model.StepFailed || manifestStep.Status == model.StepSucceeded {
+		logging.Logger.Info(fmt.Sprintf("Skipping manifest %s step %s", pipelineID, taskName))
+		return
+	}
 
 	// 1️⃣ 绑定 TaskRun
 	_ = ManifestService.BindTaskRun(
@@ -100,6 +112,16 @@ func onPipelineRun(obj interface{}) {
 	ctx := context.Background()
 
 	pipelineID := pr.Name
+
+	manifest, err := ManifestService.GetManifestByPipelineID(ctx, pipelineID)
+	if err != nil {
+		logging.Logger.Error(fmt.Sprintf("Failed to get Manifest by PipelineID failed: %s", pipelineID), zap.Error(err))
+		return
+	}
+	if manifest.Status == model.ManifestFailed || manifest.Status == model.ManifestSucceeded {
+		logging.Logger.Info(fmt.Sprintf("Skipping manifest step %s", pipelineID))
+		return
+	}
 	cond := pr.Status.GetCondition(apis.ConditionSucceeded)
 	if cond == nil {
 		return

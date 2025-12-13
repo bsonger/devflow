@@ -121,12 +121,7 @@ func (r *Repository) UpdateOne(ctx context.Context, m model.MongoModel, filter b
 	return nil
 }
 
-func (r *Repository) UpdateMany(
-	ctx context.Context,
-	m model.MongoModel,
-	filter bson.M,
-	update bson.M,
-) error {
+func (r *Repository) UpdateMany(ctx context.Context, m model.MongoModel, filter bson.M, update bson.M) error {
 	ctx, span := otel.Start(ctx, "repo.updateMany")
 	defer span.End()
 
@@ -134,23 +129,14 @@ func (r *Repository) UpdateMany(
 	return err
 }
 
-func (r *Repository) FindOne(
-	ctx context.Context,
-	m model.MongoModel,
-	filter bson.M,
-) error {
+func (r *Repository) FindOne(ctx context.Context, m model.MongoModel, filter bson.M) error {
 	ctx, span := otel.Start(ctx, "repo.findOne")
 	defer span.End()
 
 	return r.collection(m).FindOne(ctx, filter).Decode(m)
 }
 
-func (r *Repository) Upsert(
-	ctx context.Context,
-	m model.MongoModel,
-	filter bson.M,
-	update bson.M,
-) error {
+func (r *Repository) Upsert(ctx context.Context, m model.MongoModel, filter bson.M, update bson.M) error {
 	ctx, span := otel.Start(ctx, "repo.upsert")
 	defer span.End()
 

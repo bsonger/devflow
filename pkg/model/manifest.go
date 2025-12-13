@@ -55,4 +55,13 @@ func GenerateManifestVersion(name string) string {
 	return fmt.Sprintf("%s%s%s", name, t, strconv.Itoa(r))
 }
 
-func (Manifest) CollectionName() string { return "manifests" }
+func (m *Manifest) CollectionName() string { return "manifests" }
+
+func (m *Manifest) GetStep(taskName string) *ManifestStep {
+	for i := range m.Steps {
+		if m.Steps[i].TaskName == taskName {
+			return &m.Steps[i]
+		}
+	}
+	return nil
+}

@@ -11,14 +11,9 @@ import (
 	"time"
 )
 
-var ManifestService = NewManifestService()
+var ManifestService = &manifestService{}
 
 type manifestService struct {
-}
-
-// NewManifestService 创建 ManifestService
-func NewManifestService() *manifestService {
-	return &manifestService{}
 }
 
 func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest) (primitive.ObjectID, error) {
@@ -79,7 +74,7 @@ func (s *manifestService) GetManifest(ctx context.Context, id primitive.ObjectID
 	return m, err
 }
 
-// UpdateManifest 更新 Manifest
+// Update UpdateManifest 更新 Manifest
 func (s *manifestService) Update(ctx context.Context, m *model.Manifest) error {
 	return db.Repo.Update(ctx, m)
 }
@@ -111,23 +106,34 @@ func (s *manifestService) UpdateStepStatus(ctx context.Context, pipelineID, task
 		update["steps.$.end_time"] = end
 	}
 
-	return db.Repo.UpdateOne(
-		ctx,
-		&model.Manifest{},
-		bson.M{
-			"pipeline_id":     pipelineID,
-			"steps.task_name": taskName,
+	filter := bson.M{
+		"pipeline_id": pipelineID,
+		"steps": bson.M{
+			"$elemMatch": bson.M{
+				"task_name": taskName,
+				"status": bson.M{
+					"$nin": []model.StepStatus{model.StepFailed, model.StepSucceeded},
+				},
+			},
 		},
-		bson.M{"$set": update},
-	)
+	}
+
+	return db.Repo.UpdateOne(ctx, &model.Manifest{}, filter, bson.M{"$set": update})
 }
 
 func (s *manifestService) UpdateManifestStatus(ctx context.Context, pipelineID string, status model.ManifestStatus) error {
 
+	filter := bson.M{
+		"pipeline_id": pipelineID,
+		"status": bson.M{
+			"$nin": []model.ManifestStatus{model.ManifestFailed, model.ManifestSucceeded},
+		},
+	}
+
 	return db.Repo.UpdateOne(
 		ctx,
 		&model.Manifest{},
-		bson.M{"pipeline_id": pipelineID},
+		filter,
 		bson.M{
 			"$set": bson.M{
 				"status":     status,
@@ -174,4 +180,18 @@ func (s *manifestService) BindTaskRun(ctx context.Context, pipelineID, taskName,
 			},
 		},
 	)
+}
+
+func (s *manifestService) GetManifestByPipelineID(ctx context.Context, pipelineID string) (*model.Manifest, error) {
+
+	var m model.Manifest
+	err := db.Repo.FindOne(
+		ctx,
+		&m,
+		bson.M{"pipeline_id": pipelineID},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
