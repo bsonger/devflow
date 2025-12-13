@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/bsonger/devflow/pkg/argo"
+	"github.com/bsonger/devflow/pkg/client"
 	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	"github.com/bsonger/devflow/pkg/otel"
-	"github.com/bsonger/devflow/pkg/tekton"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
@@ -57,7 +57,7 @@ func reloadConfig() {
 		logging.Logger.Fatal("mongo init failed", zap.Error(err))
 	}
 
-	err = tekton.InitTektonClient()
+	err = client.InitTektonClient()
 	if err != nil {
 		logging.Logger.Fatal("tekton init failed", zap.Error(err))
 	}

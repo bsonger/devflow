@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"errors"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/bsonger/devflow/pkg/model"
 	"github.com/bsonger/devflow/pkg/otel"
@@ -83,4 +85,81 @@ func (r *Repository) List(ctx context.Context, m model.MongoModel, filter bson.M
 		return err
 	}
 	return nil
+}
+
+func (r *Repository) UpdateOne(
+	ctx context.Context,
+	m model.MongoModel,
+	filter bson.M,
+	update bson.M,
+) error {
+	ctx, span := otel.Start(ctx, "repo.updateOne")
+	defer span.End()
+
+	if filter == nil {
+		return errors.New("update filter cannot be nil")
+	}
+	if update == nil {
+		return errors.New("update document cannot be nil")
+	}
+
+	result, err := r.collection(m).UpdateOne(ctx, filter, update)
+	if err != nil {
+		r.logger.Error(
+			"mongo updateOne failed",
+			zap.Error(err),
+			zap.Any("filter", filter),
+			zap.Any("update", update),
+		)
+		return err
+	}
+
+	// 可选：没匹配到文档时打日志（Informer 场景很有用）
+	if result.MatchedCount == 0 {
+		r.logger.Warn(
+			"mongo updateOne matched 0 documents",
+			zap.Any("filter", filter),
+			zap.Any("update", update),
+		)
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdateMany(
+	ctx context.Context,
+	m model.MongoModel,
+	filter bson.M,
+	update bson.M,
+) error {
+	ctx, span := otel.Start(ctx, "repo.updateMany")
+	defer span.End()
+
+	_, err := r.collection(m).UpdateMany(ctx, filter, update)
+	return err
+}
+
+func (r *Repository) FindOne(
+	ctx context.Context,
+	m model.MongoModel,
+	filter bson.M,
+) error {
+	ctx, span := otel.Start(ctx, "repo.findOne")
+	defer span.End()
+
+	return r.collection(m).FindOne(ctx, filter).Decode(m)
+}
+
+func (r *Repository) Upsert(
+	ctx context.Context,
+	m model.MongoModel,
+	filter bson.M,
+	update bson.M,
+) error {
+	ctx, span := otel.Start(ctx, "repo.upsert")
+	defer span.End()
+
+	opts := options.Update().SetUpsert(true)
+	_, err := r.collection(m).UpdateOne(ctx, filter, update, opts)
+	return err
 }
