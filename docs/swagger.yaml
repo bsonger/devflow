@@ -1,9 +1,9 @@
 definitions:
   model.Application:
     properties:
-      createdAt:
+      created_at:
         type: string
-      deletedAt:
+      deleted_at:
         type: string
       id:
         type: string
@@ -11,30 +11,30 @@ definitions:
         type: string
       repo_url:
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   model.Job:
     properties:
-      applicationId:
+      application_id:
         type: string
-      applicationName:
+      application_name:
         type: string
-      createdAt:
+      created_at:
         type: string
-      deletedAt:
+      deleted_at:
         type: string
       id:
         type: string
-      manifestID:
+      manifest_id:
         type: string
-      manifestName:
+      manifest_name:
         type: string
-      projectName:
+      project_name:
         type: string
       type:
         type: string
-      updatedAt:
+      updated_at:
         type: string
     type: object
   model.Manifest:
@@ -47,9 +47,9 @@ definitions:
       branch:
         description: git branch
         type: string
-      createdAt:
+      created_at:
         type: string
-      deletedAt:
+      deleted_at:
         type: string
       git_repo:
         description: 对应 Application repo
@@ -65,26 +65,58 @@ definitions:
         description: Tekton PipelineRun ID
         type: string
       status:
+        allOf:
+        - $ref: '#/definitions/model.ManifestStatus'
         description: running, success, failed
-        type: string
       steps:
         description: 每个步骤状态
         items:
-          $ref: '#/definitions/model.Step'
+          $ref: '#/definitions/model.ManifestStep'
         type: array
-      updatedAt:
+      updated_at:
         type: string
       version:
         type: string
     type: object
-  model.Step:
+  model.ManifestStatus:
+    enum:
+    - Pending
+    - Running
+    - Succeeded
+    - Failed
+    type: string
+    x-enum-varnames:
+    - ManifestPending
+    - ManifestRunning
+    - ManifestSucceeded
+    - ManifestFailed
+  model.ManifestStep:
     properties:
-      name:
+      end_time:
+        type: string
+      message:
+        type: string
+      start_time:
         type: string
       status:
-        description: pending, running, success, failed
+        $ref: '#/definitions/model.StepStatus'
+      task_name:
+        type: string
+      task_run:
         type: string
     type: object
+  model.StepStatus:
+    enum:
+    - Pending
+    - Running
+    - Succeeded
+    - Failed
+    type: string
+    x-enum-varnames:
+    - StepPending
+    - StepRunning
+    - StepSucceeded
+    - StepFailed
 info:
   contact:
     email: devflow@example.com

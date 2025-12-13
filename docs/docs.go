@@ -394,10 +394,10 @@ const docTemplate = `{
         "model.Application": {
             "type": "object",
             "properties": {
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
-                "deletedAt": {
+                "deleted_at": {
                     "type": "string"
                 },
                 "id": {
@@ -409,7 +409,7 @@ const docTemplate = `{
                 "repo_url": {
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -417,34 +417,34 @@ const docTemplate = `{
         "model.Job": {
             "type": "object",
             "properties": {
-                "applicationId": {
+                "application_id": {
                     "type": "string"
                 },
-                "applicationName": {
+                "application_name": {
                     "type": "string"
                 },
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
-                "deletedAt": {
+                "deleted_at": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
-                "manifestID": {
+                "manifest_id": {
                     "type": "string"
                 },
-                "manifestName": {
+                "manifest_name": {
                     "type": "string"
                 },
-                "projectName": {
+                "project_name": {
                     "type": "string"
                 },
                 "type": {
                     "type": "string"
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -463,10 +463,10 @@ const docTemplate = `{
                     "description": "git branch",
                     "type": "string"
                 },
-                "createdAt": {
+                "created_at": {
                     "type": "string"
                 },
-                "deletedAt": {
+                "deleted_at": {
                     "type": "string"
                 },
                 "git_repo": {
@@ -489,16 +489,20 @@ const docTemplate = `{
                 },
                 "status": {
                     "description": "running, success, failed",
-                    "type": "string"
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.ManifestStatus"
+                        }
+                    ]
                 },
                 "steps": {
                     "description": "每个步骤状态",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.Step"
+                        "$ref": "#/definitions/model.ManifestStep"
                     }
                 },
-                "updatedAt": {
+                "updated_at": {
                     "type": "string"
                 },
                 "version": {
@@ -506,17 +510,58 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Step": {
+        "model.ManifestStatus": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Running",
+                "Succeeded",
+                "Failed"
+            ],
+            "x-enum-varnames": [
+                "ManifestPending",
+                "ManifestRunning",
+                "ManifestSucceeded",
+                "ManifestFailed"
+            ]
+        },
+        "model.ManifestStep": {
             "type": "object",
             "properties": {
-                "name": {
+                "end_time": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "start_time": {
                     "type": "string"
                 },
                 "status": {
-                    "description": "pending, running, success, failed",
+                    "$ref": "#/definitions/model.StepStatus"
+                },
+                "task_name": {
+                    "type": "string"
+                },
+                "task_run": {
                     "type": "string"
                 }
             }
+        },
+        "model.StepStatus": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Running",
+                "Succeeded",
+                "Failed"
+            ],
+            "x-enum-varnames": [
+                "StepPending",
+                "StepRunning",
+                "StepSucceeded",
+                "StepFailed"
+            ]
         }
     }
 }`
