@@ -44,15 +44,15 @@ func (r *Repository) Create(ctx context.Context, m model.MongoModel) error {
 }
 
 func (r *Repository) FindByID(ctx context.Context, m model.MongoModel, id primitive.ObjectID) error {
-	ctx, span := otel.Start(ctx, "repo.findById")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.findById")
+	//defer span.End()
 
 	return r.collection(m).FindOne(ctx, bson.M{"_id": id}).Decode(m)
 }
 
 func (r *Repository) Update(ctx context.Context, m model.MongoModel) error {
-	ctx, span := otel.Start(ctx, "repo.update")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.update")
+	//defer span.End()
 
 	_, err := r.collection(m).
 		UpdateByID(ctx, m.GetID(), bson.M{"$set": m})
@@ -67,8 +67,8 @@ func (r *Repository) Delete(ctx context.Context, m model.MongoModel, id primitiv
 }
 
 func (r *Repository) List(ctx context.Context, m model.MongoModel, filter bson.M, results interface{}) error {
-	ctx, span := otel.Start(ctx, "repo.list")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.list")
+	//defer span.End()
 
 	if filter == nil {
 		filter = bson.M{}
@@ -88,8 +88,8 @@ func (r *Repository) List(ctx context.Context, m model.MongoModel, filter bson.M
 }
 
 func (r *Repository) UpdateOne(ctx context.Context, m model.MongoModel, filter bson.M, update bson.M) error {
-	ctx, span := otel.Start(ctx, "repo.updateOne")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.updateOne")
+	//defer span.End()
 
 	if filter == nil {
 		return errors.New("update filter cannot be nil")
@@ -122,23 +122,23 @@ func (r *Repository) UpdateOne(ctx context.Context, m model.MongoModel, filter b
 }
 
 func (r *Repository) UpdateMany(ctx context.Context, m model.MongoModel, filter bson.M, update bson.M) error {
-	ctx, span := otel.Start(ctx, "repo.updateMany")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.updateMany")
+	//defer span.End()
 
 	_, err := r.collection(m).UpdateMany(ctx, filter, update)
 	return err
 }
 
 func (r *Repository) FindOne(ctx context.Context, m model.MongoModel, filter bson.M) error {
-	ctx, span := otel.Start(ctx, "repo.findOne")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.findOne")
+	//defer span.End()
 
 	return r.collection(m).FindOne(ctx, filter).Decode(m)
 }
 
 func (r *Repository) Upsert(ctx context.Context, m model.MongoModel, filter bson.M, update bson.M) error {
-	ctx, span := otel.Start(ctx, "repo.upsert")
-	defer span.End()
+	//ctx, span := otel.Start(ctx, "repo.upsert")
+	//defer span.End()
 
 	opts := options.Update().SetUpsert(true)
 	_, err := r.collection(m).UpdateOne(ctx, filter, update, opts)
