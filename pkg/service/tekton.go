@@ -148,6 +148,11 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 	// 随机生成一个 PipelineRun 名称
 	prName := fmt.Sprintf("%s-run-%d", pipelineName, time.Now().Unix())
 
+	imageTag := manifest.Name
+	if manifest.Branch != "main" {
+		imageTag = fmt.Sprintf("%s-%s", manifest.Branch, imageTag)
+	}
+
 	// 构造 PipelineRun 参数
 	prParams := []tknv1.Param{
 		{
@@ -182,7 +187,7 @@ func CreatePipelineRun(ctx context.Context, pipelineName string, manifest *model
 			Name: "image-tag",
 			Value: tknv1.ParamValue{
 				Type:      tknv1.ParamTypeString,
-				StringVal: manifest.Version,
+				StringVal: imageTag,
 			},
 		},
 		{

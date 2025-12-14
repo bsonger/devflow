@@ -437,6 +437,9 @@
                 "project_name": {
                     "type": "string"
                 },
+                "status": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -499,9 +502,6 @@
                     }
                 },
                 "updated_at": {
-                    "type": "string"
-                },
-                "version": {
                     "type": "string"
                 }
             }

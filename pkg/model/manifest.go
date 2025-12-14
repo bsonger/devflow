@@ -31,7 +31,6 @@ type Manifest struct {
 	ApplicationId   primitive.ObjectID `json:"application_id" bson:"application_id"` // 关联 Application
 	Name            string             `json:"name" bson:"name"`
 	ApplicationName string             `json:"application_name" bson:"application_name"`
-	Version         string             `json:"version" bson:"version"`
 	Branch          string             `json:"branch" bson:"branch"`           // git branch
 	GitRepo         string             `json:"git_repo" bson:"git_repo"`       // 对应 Application repo
 	Image           string             `json:"image" bson:"image"`             // Docker 镜像地址

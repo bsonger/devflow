@@ -441,6 +441,9 @@ const docTemplate = `{
                 "project_name": {
                     "type": "string"
                 },
+                "status": {
+                    "type": "string"
+                },
                 "type": {
                     "type": "string"
                 },
@@ -503,9 +506,6 @@ const docTemplate = `{
                     }
                 },
                 "updated_at": {
-                    "type": "string"
-                },
-                "version": {
                     "type": "string"
                 }
             }
