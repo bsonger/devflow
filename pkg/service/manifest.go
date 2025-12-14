@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/bsonger/devflow/pkg/db"
+	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,6 +29,7 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
+	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("get application: %s", app.Name))
 
 	m.GitRepo = app.RepoURL
 	m.ApplicationName = app.Name
@@ -42,6 +45,8 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
+	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("create pipeline run: %s", pr))
+
 	m.PipelineID = pr.Name
 
 	// 2️⃣ 查询 Pipeline
@@ -55,6 +60,8 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 		return primitive.NilObjectID, err
 	}
 
+	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("get pipeline: %s", pipeline.Name))
+
 	// 3️⃣ 初始化所有 Step（全部 Pending）
 	m.Steps = BuildStepsFromPipeline(pipeline)
 
@@ -63,6 +70,8 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
+
+	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("insert db %s completed", m.Name))
 
 	return m.GetID(), nil
 }

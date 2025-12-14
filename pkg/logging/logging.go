@@ -1,7 +1,9 @@
 package logging
 
 import (
+	"context"
 	"github.com/bsonger/devflow/pkg/model"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -28,4 +30,16 @@ func Init() {
 	}
 
 	Logger = logger
+}
+
+func LoggerWithContext(ctx context.Context) *zap.Logger {
+	if ctx == nil {
+		return Logger
+	}
+	span := trace.SpanFromContext(ctx)
+	if !span.SpanContext().IsValid() {
+		return Logger
+	}
+	traceID := span.SpanContext().TraceID().String()
+	return Logger.With(zap.String("trace_id", traceID))
 }

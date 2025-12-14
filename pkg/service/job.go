@@ -25,16 +25,15 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	ctx, span := tracer.Start(ctx, "CreateJob")
 	defer span.End()
 
-	// 从 Trace Context 自动注入 trace_id 到日志
-	logger := logging.Logger.With(zap.String("trace_id", trace.SpanFromContext(ctx).SpanContext().TraceID().String()))
-
 	// 获取 Manifest
 	manifest, err := ManifestService.Get(ctx, job.ManifestID)
 	if err != nil {
 		span.RecordError(err)
-		logger.Error("Failed to get manifest", zap.Error(err))
+		logging.LoggerWithContext(ctx).Error("Failed to get manifest", zap.Any("manifest id", job.ManifestID), zap.Error(err))
 		return primitive.NilObjectID, err
 	}
+	logging.LoggerWithContext(ctx).Debug("Manifest found", zap.Any("manifest", manifest.ID), zap.String("manifest", manifest.Name))
+
 	job.ManifestName = manifest.Name
 	job.ApplicationId = manifest.ApplicationId
 
@@ -42,9 +41,11 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	application, err := ApplicationService.Get(ctx, manifest.ApplicationId)
 	if err != nil {
 		span.RecordError(err)
-		logger.Error("Failed to get application", zap.Error(err))
+		logging.LoggerWithContext(ctx).Error("Failed to get application", zap.Any("application id", manifest.ApplicationId), zap.Error(err))
 		return primitive.NilObjectID, err
 	}
+	logging.LoggerWithContext(ctx).Debug("Application found", zap.Any("application id", application.ID), zap.String("application", application.Name))
+
 	job.ApplicationName = application.Name
 
 	// 调用 Argo 创建/更新 Application
@@ -57,7 +58,7 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	}
 	if err != nil {
 		argoSpan.RecordError(err)
-		logger.Error("Failed to create/update application", zap.Error(err))
+		logging.LoggerWithContext(ctx).Error("Failed to create/update application", zap.Any("manifest id", job.ManifestID), zap.Error(err))
 		argoSpan.End()
 		span.RecordError(err)
 		return primitive.NilObjectID, err
@@ -69,10 +70,10 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	err = db.Repo.Create(ctx, job)
 	if err != nil {
 		span.RecordError(err)
-		logger.Error("Failed to create job record", zap.Error(err))
+		logging.LoggerWithContext(ctx).Error("Failed to create job record", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
-	logger.Info("Created job record", zap.String("job_id", job.ID.String()))
+	logging.LoggerWithContext(ctx).Info("Created job record", zap.String("job_id", job.ID.String()))
 
 	return job.GetID(), err
 }
