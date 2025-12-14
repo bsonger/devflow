@@ -36,6 +36,9 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	m.Name = model.GenerateManifestVersion(app.Name)
 	m.Status = model.ManifestPending
 	m.WithCreateDefault()
+	if m.Branch == "" {
+		m.Branch = "main"
+	}
 
 	// 1️⃣ 创建 PipelineRun
 	ctx, prSpan := tracer.Start(ctx, "CreatePipelineRun")
