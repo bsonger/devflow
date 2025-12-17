@@ -144,3 +144,33 @@ func (r *Repository) Upsert(ctx context.Context, m model.MongoModel, filter bson
 	_, err := r.collection(m).UpdateOne(ctx, filter, update, opts)
 	return err
 }
+
+func (r *Repository) UpdateByID(ctx context.Context, m model.MongoModel, id primitive.ObjectID, update bson.M) error {
+	// ctx, span := otel.Start(ctx, "repo.updateById")
+	// defer span.End()
+
+	if id.IsZero() {
+		return errors.New("update id cannot be zero")
+	}
+	if update == nil {
+		return errors.New("update document cannot be nil")
+	}
+
+	res, err := r.collection(m).UpdateByID(ctx, id, update)
+	if err != nil {
+		r.logger.Error(
+			"mongo updateById failed",
+			zap.Error(err),
+			zap.String("collection", m.CollectionName()),
+			zap.String("id", id.Hex()),
+			zap.Any("update", update),
+		)
+		return err
+	}
+
+	if res.MatchedCount == 0 {
+		r.logger.Warn("mongo updateById matched 0 documents", zap.String("collection", m.CollectionName()), zap.String("id", id.Hex()))
+	}
+
+	return nil
+}

@@ -2,80 +2,89 @@ package service
 
 import (
 	"context"
-	"github.com/bsonger/devflow/pkg/argo"
+	"errors"
 	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
-var JobService = NewJobService()
+var JobService = &jobService{}
 
 type jobService struct{}
 
-func NewJobService() *jobService {
-	return &jobService{}
-}
+//func NewJobService() *jobService {
+//	return &jobService{}
+//}
 
 func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
-	tracer := otel.Tracer("devflow-job")
-	ctx, span := tracer.Start(ctx, "CreateJob")
+	tracer := otel.Tracer("devflow/job")
+	ctx, span := tracer.Start(ctx, "JobService.Create")
 	defer span.End()
 
-	// 获取 Manifest
+	log := logging.LoggerWithContext(ctx)
+
+	// 1️⃣ 获取 Manifest
 	manifest, err := ManifestService.Get(ctx, job.ManifestID)
 	if err != nil {
 		span.RecordError(err)
-		logging.LoggerWithContext(ctx).Error("Failed to get manifest", zap.Any("manifest id", job.ManifestID), zap.Error(err))
+		log.Error("Get manifest failed",
+			zap.String("manifest_id", job.ManifestID.Hex()),
+			zap.Error(err),
+		)
 		return primitive.NilObjectID, err
 	}
-	logging.LoggerWithContext(ctx).Debug("Manifest found", zap.Any("manifest", manifest.ID), zap.String("manifest", manifest.Name))
 
 	job.ManifestName = manifest.Name
 	job.ApplicationId = manifest.ApplicationId
 
-	// 获取 Application
-	application, err := ApplicationService.Get(ctx, manifest.ApplicationId)
+	if job.Type == "" {
+		job.Type = model.JobUpgrade
+	}
+
+	// 2️⃣ 获取 Application
+	app, err := ApplicationService.Get(ctx, manifest.ApplicationId)
 	if err != nil {
 		span.RecordError(err)
-		logging.LoggerWithContext(ctx).Error("Failed to get application", zap.Any("application id", manifest.ApplicationId), zap.Error(err))
+		log.Error("Get application failed",
+			zap.String("application_id", manifest.ApplicationId.Hex()),
+			zap.Error(err),
+		)
 		return primitive.NilObjectID, err
 	}
-	logging.LoggerWithContext(ctx).Debug("Application found", zap.Any("application id", application.ID), zap.String("application", application.Name))
+	job.ApplicationName = app.Name
 
-	job.ApplicationName = application.Name
-
-	// 调用 Argo 创建/更新 Application
-	var argoSpan trace.Span
-	ctx, argoSpan = tracer.Start(ctx, "ArgoCreateOrUpdate")
-	if job.Type == "install" {
-		err = argo.CreateApplication(ctx, job)
-	} else {
-		err = argo.UpdateApplication(ctx, job)
-	}
-	if err != nil {
-		argoSpan.RecordError(err)
-		logging.LoggerWithContext(ctx).Error("Failed to create/update application", zap.Any("manifest id", job.ManifestID), zap.Error(err))
-		argoSpan.End()
-		span.RecordError(err)
-		return primitive.NilObjectID, err
-	}
-	argoSpan.End()
-
-	// 数据库保存
+	// 3️⃣ 初始化 Job
+	job.Status = model.JobPending
 	job.WithCreateDefault()
-	err = db.Repo.Create(ctx, job)
-	if err != nil {
+
+	// 4️⃣ 先落库（非常关键）
+	if err := db.Repo.Create(ctx, job); err != nil {
 		span.RecordError(err)
-		logging.LoggerWithContext(ctx).Error("Failed to create job record", zap.Error(err))
+		log.Error("Create job record failed", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
-	logging.LoggerWithContext(ctx).Info("Created job record", zap.String("job_id", job.ID.String()))
 
-	return job.GetID(), err
+	log.Info("Job created",
+		zap.String("job_id", job.ID.Hex()),
+		zap.String("type", job.Type),
+	)
+
+	// 5️⃣ 更新 Job → Running
+	if err := s.updateStatus(ctx, job.ID, model.JobRunning); err != nil {
+		span.RecordError(err)
+		return job.ID, err
+	}
+
+	// 6️⃣ 调用 Argo（独立 Span）
+	if err := s.syncArgo(ctx, job); err != nil {
+		span.RecordError(err)
+		return job.ID, err
+	}
+
+	return job.ID, nil
 }
 
 func (s *jobService) Get(ctx context.Context, id primitive.ObjectID) (*model.Job, error) {
@@ -97,4 +106,46 @@ func (s *jobService) List(ctx context.Context, filter primitive.M) ([]*model.Job
 	var apps []*model.Job
 	err := db.Repo.List(ctx, &model.Job{}, filter, &apps)
 	return apps, err
+}
+
+func (s *jobService) updateStatus(ctx context.Context, jobID primitive.ObjectID, status model.JobStatus) error {
+	update := primitive.M{
+		"$set": primitive.M{
+			"status": status,
+		},
+	}
+	return db.Repo.UpdateByID(ctx, &model.Job{}, jobID, update)
+}
+
+func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
+	tracer := otel.Tracer("devflow/job")
+	ctx, span := tracer.Start(ctx, "Argo.Sync")
+	defer span.End()
+
+	log := logging.LoggerWithContext(ctx)
+
+	var err error
+	switch job.Type {
+	case model.JobInstall:
+		err = CreateApplication(ctx, job)
+	case model.JobUpgrade, model.JobRollback:
+		err = UpdateApplication(ctx, job)
+	default:
+		err = errors.New("unknown job type")
+	}
+
+	if err != nil {
+		span.RecordError(err)
+		log.Error("Argo sync failed",
+			zap.String("job_id", job.ID.Hex()),
+			zap.String("type", job.Type),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	log.Info("Argo sync triggered",
+		zap.String("job_id", job.ID.Hex()),
+	)
+	return nil
 }

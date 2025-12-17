@@ -6,6 +6,7 @@ import (
 	"github.com/bsonger/devflow/pkg/logging"
 	"github.com/bsonger/devflow/pkg/otel"
 	"go.uber.org/zap"
+	"reflect"
 	"time"
 
 	tknv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
@@ -20,7 +21,7 @@ import (
 	"github.com/bsonger/devflow/pkg/model"
 )
 
-func Start(ctx context.Context) error {
+func StartTektonInformer(ctx context.Context) error {
 	factory := informers.NewSharedInformerFactory(client.TektonClient, 0)
 
 	prInformer := factory.Tekton().V1().PipelineRuns().Informer()
@@ -39,8 +40,8 @@ func Start(ctx context.Context) error {
 	trInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: onTaskRun,
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			if oldObj == newObj {
-				return
+			if reflect.DeepEqual(oldObj, newObj) {
+				return // 对象没变化，直接返回
 			}
 			onTaskRun(newObj)
 		},

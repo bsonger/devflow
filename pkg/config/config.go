@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/bsonger/devflow/pkg/argo"
 	"github.com/bsonger/devflow/pkg/client"
 	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
@@ -61,7 +60,7 @@ func reloadConfig() {
 	if err != nil {
 		logging.Logger.Fatal("tekton init failed", zap.Error(err))
 	}
-	err = argo.InitArgocdClient()
+	err = client.InitArgoCdClient()
 
 	if err != nil {
 		logging.Logger.Fatal("argo init failed", zap.Error(err))

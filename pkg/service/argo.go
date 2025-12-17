@@ -1,34 +1,61 @@
-package argo
+package service
 
 import (
 	"context"
 	"fmt"
+	"github.com/argoproj/gitops-engine/pkg/health"
+	"github.com/bsonger/devflow/pkg/client"
+	"github.com/bsonger/devflow/pkg/db"
 	"github.com/bsonger/devflow/pkg/logging"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"os"
 
 	appv1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	argoclient "github.com/argoproj/argo-cd/v3/pkg/client/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/bsonger/devflow/pkg/model"
 )
 
-var argoCdClient *argoclient.Clientset
-
-// InitArgocdClient 初始化 ArgoCD client
-func InitArgocdClient() error {
-	var err error
-	argoCdClient, err = argoclient.NewForConfig(model.KubeConfig)
-	if err != nil {
-		return fmt.Errorf("failed to create argo cd client: %w", err)
-	}
-	logging.Logger.Info("argo cd client initialized")
+func StartArgoCdInformer(ctx context.Context) error {
 	return nil
+}
+
+func handleArgoEvent(ctx context.Context, obj interface{}) {
+	app, ok := obj.(*appv1.Application)
+	if !ok {
+		logging.LoggerWithContext(ctx).Error("invalid object type")
+		return
+	}
+
+	jobIDStr, ok := app.Labels["devflow/job-id"]
+	if !ok || jobIDStr == "" {
+		logging.LoggerWithContext(ctx).Warn("jobID label missing")
+		return
+	}
+
+	jobID, err := primitive.ObjectIDFromHex(jobIDStr)
+	if err != nil {
+		logging.LoggerWithContext(ctx).Error("invalid jobID format", zap.String("jobID", jobIDStr), zap.Error(err))
+		return
+	}
+
+	job := &model.Job{}
+	if err := db.Repo.FindByID(ctx, job, jobID); err != nil {
+		logging.LoggerWithContext(ctx).Error("Job not found", zap.String("jobID", jobID.Hex()), zap.Error(err))
+		return
+	}
+
+	ready := app.Status.Sync.Status == appv1.SyncStatusCodeSynced && app.Status.Health.Status == health.HealthStatusHealthy
+	if ready {
+		job.Status = model.JobSucceeded
+	}
 }
 
 // CreateApplication 创建或更新 ArgoCD Application
 func CreateApplication(ctx context.Context, job *model.Job) error {
-	applications := argoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
+	applications := client.ArgoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
 	app := GenerateApplication(ctx, job)
 
 	_, err := applications.Create(ctx, app, metav1.CreateOptions{})
@@ -36,7 +63,7 @@ func CreateApplication(ctx context.Context, job *model.Job) error {
 }
 
 func UpdateApplication(ctx context.Context, job *model.Job) error {
-	applications := argoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
+	applications := client.ArgoCdClient.ArgoprojV1alpha1().Applications("argo-cd")
 	app := GenerateApplication(ctx, job)
 	current, err := applications.Get(ctx, job.ApplicationName, metav1.GetOptions{})
 	if err != nil {
@@ -67,6 +94,14 @@ func GenerateApplication(ctx context.Context, job *model.Job) *appv1.Application
 		path = fmt.Sprintf("%s/%s/base", job.ApplicationName, job.ManifestName)
 	}
 
+	span := trace.SpanFromContext(ctx)
+	labels := map[string]string{
+		"devflow/job-id": job.ID.Hex(),
+	}
+	if span.SpanContext().IsValid() {
+		labels["trace_id"] = span.SpanContext().TraceID().String()
+	}
+
 	app := &appv1.Application{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Application",
@@ -75,6 +110,7 @@ func GenerateApplication(ctx context.Context, job *model.Job) *appv1.Application
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      job.ApplicationName,
 			Namespace: "argo-cd",
+			Labels:    labels,
 		},
 		Spec: appv1.ApplicationSpec{
 			Project: "default",

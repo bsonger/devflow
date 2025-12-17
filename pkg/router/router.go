@@ -24,6 +24,6 @@ func NewRouter() *gin.Engine {
 	RegisterApplicationRoutes(api)
 	RegisterManifestRoutes(api)
 	RegisterJobRoutes(api)
-	service.Start(context.Background())
+	service.StartTektonInformer(context.Background())
 	return r
 }
