@@ -35,10 +35,10 @@ func (h *ManifestHandler) Create(c *gin.Context) {
 		return
 	}
 
-	if m.Branch == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "branch is required"})
-		return
-	}
+	//if m.Branch == "" {
+	//	c.JSON(http.StatusBadRequest, gin.H{"error": "branch is required"})
+	//	return
+	//}
 
 	//// 根据 Application 获取 gitRepo
 
