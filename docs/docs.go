@@ -394,6 +394,12 @@ const docTemplate = `{
         "model.Application": {
             "type": "object",
             "properties": {
+                "active_manifest_id": {
+                    "type": "string"
+                },
+                "active_manifest_name": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -407,6 +413,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "repo_url": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "当前状态（来自 Job 的结果）",
                     "type": "string"
                 },
                 "updated_at": {
@@ -442,7 +452,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
+                    "$ref": "#/definitions/model.JobStatus"
                 },
                 "type": {
                     "type": "string"
@@ -451,6 +461,25 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "model.JobStatus": {
+            "type": "string",
+            "enum": [
+                "Pending",
+                "Running",
+                "Succeeded",
+                "Failed",
+                "RollingBack",
+                "RolledBack"
+            ],
+            "x-enum-varnames": [
+                "JobPending",
+                "JobRunning",
+                "JobSucceeded",
+                "JobFailed",
+                "JobRollingBack",
+                "JobRolledBack"
+            ]
         },
         "model.Manifest": {
             "type": "object",
