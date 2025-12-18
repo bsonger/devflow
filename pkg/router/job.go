@@ -10,7 +10,7 @@ func RegisterJobRoutes(rg *gin.RouterGroup) {
 
 	app.POST("", api.JobRouteApi.Create)
 	app.GET("/:id", api.JobRouteApi.Get)
-	app.PUT("/:id", api.JobRouteApi.Update)
-	app.DELETE("/:id", api.JobRouteApi.Delete)
+	//app.PUT("/:id", api.JobRouteApi.Update)
+	//app.DELETE("/:id", api.JobRouteApi.Delete)
 	app.GET("/", api.JobRouteApi.List)
 }
