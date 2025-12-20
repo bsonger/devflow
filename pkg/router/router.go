@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
 	swaggerFiles "github.com/swaggo/files"
@@ -12,6 +13,7 @@ import (
 func NewRouter() *gin.Engine {
 	r := gin.Default()
 
+	r.Use(otelgin.Middleware("devflow"))
 	// 1️⃣ Swagger UI 路由
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
