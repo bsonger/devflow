@@ -77,37 +77,20 @@ func InitConfig(ctx context.Context, config *Config) error {
 	return nil
 }
 
-// LoadKubeConfig 自动加载 kubeconfig（本地）或 InCluster（Pod 内）
 func LoadKubeConfig() (*rest.Config, error) {
-	// 1. 尝试本地 kubeconfig
-	var cfg *rest.Config
-	// 2️⃣ 包装 Transport
-	cfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return otelhttp.NewTransport(rt,
-			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
-			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-				return "k8s.api." + r.Method
-			}),
-			otelhttp.WithFilter(func(r *http.Request) bool {
-				// 忽略创建 PipelineRun 的请求
-				if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/pipelineruns") {
-					return false
-				}
-				// 其他请求都采集
-				return true
-			}),
-		)
-	}
+	// 1️⃣ 尝试本地 kubeconfig
 	if cfg, err := loadLocalKubeConfig(); err == nil {
+		cfg.WrapTransport = wrapK8sTransport()
 		return cfg, nil
 	}
 
-	// 2. 回退到 in-cluster 配置
+	// 2️⃣ 回退到 InCluster
 	if cfg, err := rest.InClusterConfig(); err == nil {
+		cfg.WrapTransport = wrapK8sTransport()
 		return cfg, nil
 	}
 
-	return nil, fmt.Errorf("failed to load kubeconfig and in-cluster config")
+	return nil, fmt.Errorf("failed to load kubeconfig (local & in-cluster)")
 }
 
 // loadLocalKubeConfig 从 $HOME/.kube/config 加载
@@ -126,4 +109,25 @@ func loadLocalKubeConfig() (*rest.Config, error) {
 
 	// 使用 kubeconfig 构建 config
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
+}
+
+func wrapK8sTransport() func(http.RoundTripper) http.RoundTripper {
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return otelhttp.NewTransport(
+			rt,
+			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+				// 更清晰的 span 名称
+				return fmt.Sprintf("k8s.api %s %s", r.Method, r.URL.Path)
+			}),
+			otelhttp.WithFilter(func(r *http.Request) bool {
+				// ❌ 不采集 创建 PipelineRun
+				if r.Method == http.MethodPost &&
+					strings.HasSuffix(r.URL.Path, "/pipelineruns") {
+					return false
+				}
+				return true
+			}),
+		)
+	}
 }
