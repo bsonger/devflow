@@ -81,15 +81,6 @@ func InitConfig(ctx context.Context, config *Config) error {
 func LoadKubeConfig() (*rest.Config, error) {
 	// 1. 尝试本地 kubeconfig
 	var cfg *rest.Config
-	if cfg, err := loadLocalKubeConfig(); err == nil {
-		return cfg, nil
-	}
-
-	// 2. 回退到 in-cluster 配置
-	if cfg, err := rest.InClusterConfig(); err == nil {
-		return cfg, nil
-	}
-
 	// 2️⃣ 包装 Transport
 	cfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 		return otelhttp.NewTransport(rt,
@@ -106,6 +97,14 @@ func LoadKubeConfig() (*rest.Config, error) {
 				return true
 			}),
 		)
+	}
+	if cfg, err := loadLocalKubeConfig(); err == nil {
+		return cfg, nil
+	}
+
+	// 2. 回退到 in-cluster 配置
+	if cfg, err := rest.InClusterConfig(); err == nil {
+		return cfg, nil
 	}
 
 	return nil, fmt.Errorf("failed to load kubeconfig and in-cluster config")
