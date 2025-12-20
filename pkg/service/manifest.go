@@ -2,18 +2,18 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"github.com/bsonger/devflow-common/client/tekton"
 	v1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"time"
 
 	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/bsonger/devflow-common/client/mongo"
 	"github.com/bsonger/devflow-common/model"
-	tknv1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
 )
 
 var ManifestService = &manifestService{}
@@ -23,17 +23,14 @@ type manifestService struct {
 
 func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest) (primitive.ObjectID, error) {
 
-	tracer := otel.Tracer("devflow-manifest")
-	ctx, span := tracer.Start(ctx, "CreateManifest")
-	defer span.End()
-
+	// 1️⃣ 获取 Application
 	app, err := ApplicationService.Get(ctx, m.ApplicationId)
 	if err != nil {
-		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
-	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("get application: %s", app.Name))
+	logging.LoggerWithContext(ctx).Debug("get application", zap.String("name", app.Name))
 
+	// 2️⃣ 初始化 Manifest 基础信息
 	m.GitRepo = app.RepoURL
 	m.ApplicationName = app.Name
 	m.Name = model.GenerateManifestVersion(app.Name)
@@ -43,43 +40,50 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 		m.Branch = "main"
 	}
 
-	// 1️⃣ 创建 PipelineRun
-	ctx, prSpan := tracer.Start(ctx, "CreatePipelineRun")
-	prParams := s.GeneratePipelineRunParams(ctx, m)
-	labels := map[string]string{}
-	pr, err := tekton.CreatePipelineRun(ctx, "devflow-ci", labels, prParams)
-	prSpan.End()
+	// 3️⃣ 创建 PipelineRun Span
+	_, span := devflowTracer.Start(ctx, "Tekton.CreatePipelineRun")
+
+	defer span.End()
+
+	// 3.1 生成 PipelineRun 对象
+	pr := m.GeneratePipelineRun("devflow-ci")
+
+	// 3.2 获取当前 trace context
+	sc := trace.SpanContextFromContext(ctx)
+	pr.Annotations = map[string]string{
+		model.TraceIDAnnotation: sc.TraceID().String(),
+		model.SpanAnnotation:    sc.SpanID().String(),
+	}
+
+	// 3.3 调用 Tekton 创建 PipelineRun
+	pr, err = tekton.CreatePipelineRun(ctx, "tekton-pipelines", pr)
 	if err != nil {
 		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return primitive.NilObjectID, err
 	}
-	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("create pipeline run: %s", pr))
+	logging.LoggerWithContext(ctx).Debug("pipeline run created",
+		zap.String("pipelineRun", pr.Name),
+		zap.String("pipeline", pr.Spec.PipelineRef.Name),
+	)
 
 	m.PipelineID = pr.Name
 
-	// 2️⃣ 查询 Pipeline
-	pipeline, err := tekton.GetPipeline(
-		ctx,
-		pr.Namespace,
-		pr.Spec.PipelineRef.Name,
-	)
+	// 4️⃣ 查询 Pipeline 定义
+	pipeline, err := tekton.GetPipeline(ctx, pr.Namespace, pr.Spec.PipelineRef.Name)
 	if err != nil {
-		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
+	logging.LoggerWithContext(ctx).Debug("pipeline fetched", zap.String("pipeline", pipeline.Name))
 
-	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("get pipeline: %s", pipeline.Name))
-
-	// 3️⃣ 初始化所有 Step（全部 Pending）
+	// 5️⃣ 初始化所有 Step（全部 Pending）
 	m.Steps = BuildStepsFromPipeline(pipeline)
 
-	// 4️⃣ 保存 Manifest
+	// 6️⃣ 保存 Manifest 到数据库
 	if err := mongo.Repo.Create(ctx, m); err != nil {
-		span.RecordError(err)
 		return primitive.NilObjectID, err
 	}
-
-	logging.LoggerWithContext(ctx).Debug(fmt.Sprintf("insert db %s completed", m.Name))
+	logging.LoggerWithContext(ctx).Debug("manifest saved", zap.String("manifest", m.Name))
 
 	return m.GetID(), nil
 }
@@ -211,59 +215,4 @@ func (s *manifestService) GetManifestByPipelineID(ctx context.Context, pipelineI
 		return nil, err
 	}
 	return &m, nil
-}
-
-func (s *manifestService) GeneratePipelineRunParams(ctx context.Context, manifest *model.Manifest) []tknv1.Param {
-
-	imageTag := manifest.Name
-	if manifest.Branch != "main" {
-		imageTag = fmt.Sprintf("%s-%s", manifest.Branch, imageTag)
-	}
-
-	// 构造 PipelineRun 参数
-	prParams := []tknv1.Param{
-		{
-			Name: "git-url",
-			Value: tknv1.ParamValue{
-				Type:      tknv1.ParamTypeString,
-				StringVal: manifest.GitRepo,
-			},
-		},
-		{
-			Name: "git-revision",
-			Value: tknv1.ParamValue{
-				Type:      tknv1.ParamTypeString,
-				StringVal: manifest.Branch,
-			},
-		},
-		{
-			Name: "image-registry",
-			Value: tknv1.ParamValue{
-				Type:      tknv1.ParamTypeString,
-				StringVal: "registry.cn-hangzhou.aliyuncs.com/devflow",
-			},
-		},
-		{
-			Name: "name",
-			Value: tknv1.ParamValue{
-				Type:      tknv1.ParamTypeString,
-				StringVal: manifest.ApplicationName,
-			},
-		},
-		{
-			Name: "image-tag",
-			Value: tknv1.ParamValue{
-				Type:      tknv1.ParamTypeString,
-				StringVal: imageTag,
-			},
-		},
-		{
-			Name: "manifest-name",
-			Value: tknv1.ParamValue{
-				Type:      tknv1.ParamTypeString,
-				StringVal: manifest.Name,
-			},
-		},
-	}
-	return prParams
 }
