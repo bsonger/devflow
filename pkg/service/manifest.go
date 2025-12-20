@@ -41,7 +41,7 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	}
 
 	// 3️⃣ 创建 PipelineRun Span
-	_, span := devflowTracer.Start(ctx, "Tekton.CreatePipelineRun")
+	pctx, span := devflowTracer.Start(ctx, "Tekton.CreatePipelineRun")
 
 	defer span.End()
 
@@ -49,7 +49,7 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	pr := m.GeneratePipelineRun("devflow-ci")
 
 	// 3.2 获取当前 trace context
-	sc := trace.SpanContextFromContext(ctx)
+	sc := trace.SpanContextFromContext(pctx)
 	pr.Annotations = map[string]string{
 		model.TraceIDAnnotation: sc.TraceID().String(),
 		model.SpanAnnotation:    sc.SpanID().String(),
