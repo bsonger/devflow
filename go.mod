@@ -5,7 +5,7 @@ go 1.25.4
 require (
 	github.com/argoproj/argo-cd/v3 v3.2.2
 	github.com/argoproj/gitops-engine v0.7.1-0.20251217140045-5baed5604d2d
-	github.com/bsonger/devflow-common v0.0.0-20251220174114-c8e7c8c2b697
+	github.com/bsonger/devflow-common v0.0.0-20251220191802-ab83c9422421
 	github.com/gin-gonic/gin v1.11.0
 	github.com/spf13/viper v1.21.0
 	github.com/swaggo/files v1.0.1

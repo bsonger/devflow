@@ -3,13 +3,7 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
-	appv1 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/bsonger/devflow-common/client/argo"
-	"go.opentelemetry.io/otel/trace"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
@@ -132,7 +126,7 @@ func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
 
 	log := logging.LoggerWithContext(ctx)
 	var err error
-	application := s.GenerateApplication(ctx, job)
+	application := job.GenerateApplication()
 	switch job.Type {
 	case model.JobInstall:
 		err = argo.CreateApplication(ctx, application)
@@ -156,58 +150,4 @@ func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
 		zap.String("job_id", job.ID.Hex()),
 	)
 	return nil
-}
-
-func (s *jobService) GenerateApplication(ctx context.Context, job *model.Job) *appv1.Application {
-	env := os.Getenv("env")
-	var path string
-
-	if env != "" {
-		path = fmt.Sprintf("%s/%s/overlays/%s", job.ApplicationName, job.ManifestName, os.Getenv("env"))
-	} else {
-		path = fmt.Sprintf("%s/%s/base", job.ApplicationName, job.ManifestName)
-	}
-
-	span := trace.SpanFromContext(ctx)
-	labels := map[string]string{
-		"devflow/job-id": job.ID.Hex(),
-	}
-	if span.SpanContext().IsValid() {
-		labels["trace_id"] = span.SpanContext().TraceID().String()
-	}
-
-	app := &appv1.Application{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Application",
-			APIVersion: "argoproj.io/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      job.ApplicationName,
-			Namespace: "argo-cd",
-			Labels:    labels,
-		},
-		Spec: appv1.ApplicationSpec{
-			Project: "default",
-			Source: &appv1.ApplicationSource{
-				RepoURL:        model.C.Repo.Address,
-				TargetRevision: "main",
-				Path:           path,
-				//Kustomize: &appv1.ApplicationSourceKustomize{
-				//	// 可以设置 namePrefix, images, 带 patch 的 kustomize 等
-				//	//CommonLabels: job.CommonLabels,
-				//},
-			},
-			Destination: appv1.ApplicationDestination{
-				Server:    "https://kubernetes.default.svc",
-				Namespace: "apps",
-			},
-			SyncPolicy: &appv1.SyncPolicy{
-				Automated: &appv1.SyncPolicyAutomated{
-					Prune:    true, // 自动删除
-					SelfHeal: true, // 自动修复漂移
-				},
-			},
-		},
-	}
-	return app
 }

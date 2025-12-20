@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/bsonger/devflow-common/client/argo"
-
 	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/bsonger/devflow-common/client/mongo"
 	"github.com/bsonger/devflow-common/client/otel"
@@ -73,6 +72,7 @@ func reloadConfig(ctx context.Context, config *Config) error {
 	kubeconfig, err := LoadKubeConfig()
 	tekton.InitTektonClient(ctx, kubeconfig, logging.Logger)
 	argo.InitArgoCdClient(kubeconfig)
+	model.InitConfigRepo(config.Repo)
 	return nil
 }
 
