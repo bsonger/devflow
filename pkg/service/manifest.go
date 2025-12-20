@@ -18,6 +18,10 @@ import (
 
 var ManifestService = &manifestService{}
 
+const (
+	namespace = "tekton-pipelines"
+)
+
 type manifestService struct {
 }
 
@@ -40,13 +44,16 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 		m.Branch = "main"
 	}
 
+	pvc, err := tekton.CreatePVC(ctx, namespace, "devflow-ci", "local-path", "1Gi")
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+
 	// 3️⃣ 创建 PipelineRun Span
 	pctx, span := devflowTracer.Start(ctx, "Tekton.CreatePipelineRun")
 
-	defer span.End()
-
 	// 3.1 生成 PipelineRun 对象
-	pr := m.GeneratePipelineRun("devflow-ci")
+	pr := m.GeneratePipelineRun("devflow-ci", pvc.Name)
 
 	// 3.2 获取当前 trace context
 	sc := trace.SpanContextFromContext(pctx)
@@ -56,16 +63,21 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	}
 
 	// 3.3 调用 Tekton 创建 PipelineRun
-	pr, err = tekton.CreatePipelineRun(ctx, "tekton-pipelines", pr)
+	pr, err = tekton.CreatePipelineRun(ctx, namespace, pr)
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		return primitive.NilObjectID, err
 	}
+
 	logging.LoggerWithContext(ctx).Debug("pipeline run created",
 		zap.String("pipelineRun", pr.Name),
 		zap.String("pipeline", pr.Spec.PipelineRef.Name),
 	)
+	span.End()
+
+	tekton.PatchPVCOwner(ctx, pvc, pr)
 
 	m.PipelineID = pr.Name
 

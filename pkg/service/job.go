@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/bsonger/devflow-common/client/argo"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 
 	"github.com/bsonger/devflow-common/client/logging"
@@ -22,16 +21,12 @@ type jobService struct{}
 //}
 
 func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
-	tracer := otel.Tracer("devflow/job")
-	ctx, span := tracer.Start(ctx, "JobService.Create")
-	defer span.End()
 
 	log := logging.LoggerWithContext(ctx)
 
 	// 1️⃣ 获取 Manifest
 	manifest, err := ManifestService.Get(ctx, job.ManifestID)
 	if err != nil {
-		span.RecordError(err)
 		log.Error("Get manifest failed",
 			zap.String("manifest_id", job.ManifestID.Hex()),
 			zap.Error(err),
@@ -49,7 +44,6 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	// 2️⃣ 获取 Application
 	app, err := ApplicationService.Get(ctx, manifest.ApplicationId)
 	if err != nil {
-		span.RecordError(err)
 		log.Error("Get application failed",
 			zap.String("application_id", manifest.ApplicationId.Hex()),
 			zap.Error(err),
@@ -64,7 +58,6 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 
 	// 4️⃣ 先落库（非常关键）
 	if err := mongo.Repo.Create(ctx, job); err != nil {
-		span.RecordError(err)
 		log.Error("Create job record failed", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
@@ -76,13 +69,11 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 
 	// 5️⃣ 更新 Job → Running
 	if err := s.updateStatus(ctx, job.ID, model.JobRunning); err != nil {
-		span.RecordError(err)
 		return job.ID, err
 	}
 
 	// 6️⃣ 调用 Argo（独立 Span）
 	if err := s.syncArgo(ctx, job); err != nil {
-		span.RecordError(err)
 		return job.ID, err
 	}
 
@@ -120,9 +111,6 @@ func (s *jobService) updateStatus(ctx context.Context, jobID primitive.ObjectID,
 }
 
 func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
-	tracer := otel.Tracer("devflow/job")
-	ctx, span := tracer.Start(ctx, "Argo.Sync")
-	defer span.End()
 
 	log := logging.LoggerWithContext(ctx)
 	var err error
@@ -137,7 +125,6 @@ func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
 	}
 
 	if err != nil {
-		span.RecordError(err)
 		log.Error("Argo sync failed",
 			zap.String("job_id", job.ID.Hex()),
 			zap.String("type", job.Type),

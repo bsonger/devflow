@@ -6,9 +6,11 @@ import (
 	"github.com/bsonger/devflow-common/client/argo"
 	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/bsonger/devflow-common/client/mongo"
-	"github.com/bsonger/devflow-common/client/otel"
+	devflowOtel "github.com/bsonger/devflow-common/client/otel"
 	"github.com/bsonger/devflow-common/client/tekton"
 	"github.com/bsonger/devflow-common/model"
+	"net/http"
+	"strings"
 
 	"github.com/spf13/viper"
 
@@ -18,6 +20,8 @@ import (
 	"path/filepath"
 
 	"github.com/bsonger/devflow-common/client/consul"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 )
 
 type Config struct {
@@ -63,7 +67,7 @@ func Load() (*Config, error) {
 func reloadConfig(ctx context.Context, config *Config) error {
 	fmt.Println(config.Log)
 	logging.InitZapLogger(ctx, config.Log)
-	_, err := otel.InitOtel(ctx, config.Otel)
+	_, err := devflowOtel.InitOtel(ctx, config.Otel)
 	if err != nil {
 		return err
 	}
@@ -79,6 +83,7 @@ func reloadConfig(ctx context.Context, config *Config) error {
 // LoadKubeConfig 自动加载 kubeconfig（本地）或 InCluster（Pod 内）
 func LoadKubeConfig() (*rest.Config, error) {
 	// 1. 尝试本地 kubeconfig
+	var cfg *rest.Config
 	if cfg, err := loadLocalKubeConfig(); err == nil {
 		return cfg, nil
 	}
@@ -86,6 +91,24 @@ func LoadKubeConfig() (*rest.Config, error) {
 	// 2. 回退到 in-cluster 配置
 	if cfg, err := rest.InClusterConfig(); err == nil {
 		return cfg, nil
+	}
+
+	// 2️⃣ 包装 Transport
+	cfg.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+		return otelhttp.NewTransport(rt,
+			otelhttp.WithTracerProvider(otel.GetTracerProvider()),
+			otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+				return "k8s.api." + r.Method
+			}),
+			otelhttp.WithFilter(func(r *http.Request) bool {
+				// 忽略创建 PipelineRun 的请求
+				if r.Method == http.MethodPost && strings.Contains(r.URL.Path, "/pipelineruns") {
+					return false
+				}
+				// 其他请求都采集
+				return true
+			}),
+		)
 	}
 
 	return nil, fmt.Errorf("failed to load kubeconfig and in-cluster config")
