@@ -59,13 +59,10 @@ func Load() (*Config, error) {
 	}
 	//consul.LoadConsulConfigAndMerge(config.Consul)
 
-	reloadConfig(context.Background(), config)
-
 	return config, nil
 }
 
-func reloadConfig(ctx context.Context, config *Config) error {
-	fmt.Println(config.Log)
+func InitConfig(ctx context.Context, config *Config) error {
 	logging.InitZapLogger(ctx, config.Log)
 	_, err := devflowOtel.InitOtel(ctx, config.Otel)
 	if err != nil {

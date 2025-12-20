@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/bsonger/devflow-common/client/logging"
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
@@ -21,6 +22,10 @@ import (
 // @schemes		http https
 func main() {
 	cfg, err := config.Load()
+	if err != nil {
+		panic(err)
+	}
+	err = config.InitConfig(context.Background(), cfg)
 	if err != nil {
 		panic(err)
 	}

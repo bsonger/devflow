@@ -7,8 +7,8 @@ log:
   level: "info"
   format: "json"   # json | console
 otel:
-  endpoint: "http://otel-collector:4317"
-  service_name: "devflow-platform"
+  endpoint: "127.0.0.1:4317"
+  service_name: "devflow"
 repo:
   address: "https://github.com/bsonger/manifests.git"
   path: "manifests"
