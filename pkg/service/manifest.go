@@ -77,7 +77,10 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	)
 	span.End()
 
-	tekton.PatchPVCOwner(ctx, pvc, pr)
+	err = tekton.PatchPVCOwner(ctx, pvc, pr)
+	if err != nil {
+		logging.LoggerWithContext(ctx).Error("patch pvc owner failed", zap.Error(err))
+	}
 
 	m.PipelineID = pr.Name
 
