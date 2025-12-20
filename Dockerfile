@@ -21,7 +21,7 @@ RUN go mod download
 COPY . .
 
 # 生成 swagger docs（docs/）
-RUN swag init -g cmd/main.go
+RUN swag init -g cmd/main.go --parseDependency
 
 # 编译 DevFlow 主程序
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o devflow cmd/main.go

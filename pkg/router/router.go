@@ -1,8 +1,6 @@
 package router
 
 import (
-	"context"
-	"github.com/bsonger/devflow/pkg/service"
 	"github.com/gin-gonic/gin"
 
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
@@ -24,6 +22,6 @@ func NewRouter() *gin.Engine {
 	RegisterApplicationRoutes(api)
 	RegisterManifestRoutes(api)
 	RegisterJobRoutes(api)
-	service.StartTektonInformer(context.Background())
+	//service.StartTektonInformer(context.Background())
 	return r
 }

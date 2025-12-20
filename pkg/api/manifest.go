@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/bsonger/devflow/pkg/model"
+	"github.com/bsonger/devflow-common/model"
 	"github.com/bsonger/devflow/pkg/service"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"

@@ -2,10 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/bsonger/devflow-common/client/logging"
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
 	"github.com/bsonger/devflow/pkg/config"
-	"github.com/bsonger/devflow/pkg/logging"
-	"github.com/bsonger/devflow/pkg/model"
 	"github.com/bsonger/devflow/pkg/router"
 	"go.uber.org/zap"
 )
@@ -21,13 +20,14 @@ import (
 // @license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 // @schemes		http https
 func main() {
-	if err := config.Load(); err != nil {
+	cfg, err := config.Load()
+	if err != nil {
 		panic(err)
 	}
 
 	r := router.NewRouter()
 
-	port := model.C.Server.Port
+	port := cfg.Server.Port
 	logging.Logger.Info("server start")
 	logging.Logger.Info("starting server", zap.Int("port", port))
 	if err := r.Run(fmt.Sprintf(":%d", port)); err != nil {
