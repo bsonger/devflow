@@ -19,16 +19,45 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+func shouldIgnore(path string) bool {
+	return path == "/metrics" || path == "/health" || strings.HasPrefix(path, "/swagger")
+}
+
 func GinMetricsMiddleware() gin.HandlerFunc {
 	meter := otel.Meter("devflow/http")
 	requestsCounter, _ := meter.Int64Counter("http.server.requests")
-	requestLatency, _ := meter.Float64Histogram("http.server.duration")
+	requestLatency, _ := meter.Float64Histogram(
+		"http.server.duration",
+		metric.WithUnit("s"),
+		metric.WithExplicitBucketBoundaries(
+			0.3, 0.5, 1, 3, // 👈 更少的桶（重点）
+		),
+	)
+
+	requestSize, _ := meter.Int64Histogram(
+		"http.server.request.size",
+		metric.WithUnit("By"),
+		metric.WithExplicitBucketBoundaries(
+			512, 2048, 8192, 32768,
+		),
+	)
+
+	responseSize, _ := meter.Int64Histogram(
+		"http.server.response.size",
+		metric.WithUnit("By"),
+		metric.WithExplicitBucketBoundaries(
+			512, 2048, 8192, 32768,
+		),
+	)
 
 	const highLatencyThreshold = 1.0 // 秒
 
 	return func(c *gin.Context) {
 		start := time.Now()
 		c.Next()
+		if shouldIgnore(c.Request.URL.Path) {
+			return
+		}
 		duration := time.Since(start).Seconds()
 		status := c.Writer.Status()
 
@@ -39,6 +68,12 @@ func GinMetricsMiddleware() gin.HandlerFunc {
 			attribute.Int("status", status),
 		}
 
+		// request size
+		reqSize := c.Request.ContentLength
+		if reqSize < 0 {
+			reqSize = 0
+		}
+
 		if status >= 500 || duration > highLatencyThreshold {
 			requestsCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
 			requestLatency.Record(ctx, duration, metric.WithAttributes(attrs...))
@@ -47,6 +82,9 @@ func GinMetricsMiddleware() gin.HandlerFunc {
 			requestsCounter.Add(noopCtx, 1, metric.WithAttributes(attrs...))
 			requestLatency.Record(noopCtx, duration, metric.WithAttributes(attrs...))
 		}
+		requestSize.Record(ctx, reqSize, metric.WithAttributes(attrs...))
+		responseSize.Record(ctx, int64(c.Writer.Size()), metric.WithAttributes(attrs...))
+
 	}
 }
 
