@@ -65,7 +65,7 @@ func Load() (*Config, error) {
 func InitConfig(ctx context.Context, config *Config) error {
 	logging.InitZapLogger(ctx, config.Log)
 	_, err := devflowOtel.InitOtel(ctx, config.Otel)
-	//err = devflowOtel.InitMetrics()
+	err = devflowOtel.InitMetrics()
 	if err != nil {
 		return err
 	}
