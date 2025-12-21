@@ -2,12 +2,14 @@ package router
 
 import (
 	"context"
+	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/zap"
 	"time"
 
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
@@ -46,11 +48,66 @@ func GinMetricsMiddleware() gin.HandlerFunc {
 	}
 }
 
+// GinZapLogger 返回一个 Gin 中间件，将日志写入 zap
+func GinZapLogger(loggerFunc func(ctx context.Context) *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		raw := c.Request.URL.RawQuery
+
+		c.Next()
+
+		latency := time.Since(start)
+		status := c.Writer.Status()
+		clientIP := c.ClientIP()
+		method := c.Request.Method
+		userAgent := c.Request.UserAgent()
+		errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
+
+		if raw != "" {
+			path = path + "?" + raw
+		}
+
+		loggerFunc(c).Info("HTTP Request",
+			zap.String("method", method),
+			zap.String("path", path),
+			zap.Int("status", status),
+			zap.String("client_ip", clientIP),
+			zap.String("user_agent", userAgent),
+			zap.Duration("latency", latency),
+			zap.String("error", errorMessage),
+		)
+	}
+}
+
+func GinZapRecovery(loggerFunc func(ctx context.Context) *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				// 打印 panic 到 zap
+				loggerFunc(c).Error("panic recovered",
+					zap.Any("panic", rec),
+					zap.String("method", c.Request.Method),
+					zap.String("path", c.Request.URL.Path),
+					zap.String("client_ip", c.ClientIP()),
+				)
+				// 返回 500 给客户端
+				c.AbortWithStatusJSON(500, gin.H{"error": "internal server error"})
+			}
+		}()
+		c.Next()
+	}
+}
+
 // NewRouter creates the main Gin router.
 func NewRouter() *gin.Engine {
-	r := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 
-	r.Use(otelgin.Middleware("devflow"), GinMetricsMiddleware())
+	r := gin.New() // ⭐ 不使用 gin.Default()
+
+	r.Use(otelgin.Middleware("devflow"))
+	r.Use(GinMetricsMiddleware())
+	r.Use(GinZapLogger(logging.LoggerWithContext), GinZapRecovery(logging.LoggerWithContext))
 	// 1️⃣ Swagger UI 路由
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
