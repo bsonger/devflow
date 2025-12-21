@@ -65,6 +65,7 @@ func Load() (*Config, error) {
 func InitConfig(ctx context.Context, config *Config) error {
 	logging.InitZapLogger(ctx, config.Log)
 	_, err := devflowOtel.InitOtel(ctx, config.Otel)
+	err = devflowOtel.InitMetrics()
 	if err != nil {
 		return err
 	}
@@ -121,7 +122,6 @@ func wrapK8sTransport() func(http.RoundTripper) http.RoundTripper {
 				return fmt.Sprintf("k8s.api %s %s", r.Method, r.URL.Path)
 			}),
 			otelhttp.WithFilter(func(r *http.Request) bool {
-				// ❌ 不采集 创建 PipelineRun
 				if r.Method == http.MethodPost &&
 					strings.HasSuffix(r.URL.Path, "/pipelineruns") {
 					return false
