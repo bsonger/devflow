@@ -10,6 +10,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
+	"net/http"
+	"strings"
 	"time"
 
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
@@ -105,7 +107,16 @@ func NewRouter() *gin.Engine {
 
 	r := gin.New() // ⭐ 不使用 gin.Default()
 
-	r.Use(otelgin.Middleware("devflow"))
+	var myFilter otelgin.Filter = func(req *http.Request) bool {
+		path := req.URL.Path
+		if path == "/metrics" || strings.HasPrefix(path, "/swagger") {
+			return false
+		}
+		return true
+	}
+
+	r.Use(otelgin.Middleware("devflow", otelgin.WithFilter(myFilter)))
+
 	r.Use(GinMetricsMiddleware())
 	r.Use(GinZapLogger(logging.LoggerWithContext), GinZapRecovery(logging.LoggerWithContext))
 	// 1️⃣ Swagger UI 路由
