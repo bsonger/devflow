@@ -127,6 +127,9 @@ func (h *ApplicationHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
+	if len(apps) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
 	c.JSON(http.StatusOK, apps)
 }

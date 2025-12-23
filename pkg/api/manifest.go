@@ -71,13 +71,15 @@ func (h *ManifestHandler) Create(c *gin.Context) {
 // @Success 200 {array} model.Manifest
 // @Router  /api/v1/manifests [get]
 func (h *ManifestHandler) List(c *gin.Context) {
-	apps, err := service.ManifestService.List(c.Request.Context(), primitive.M{})
+	manifests, err := service.ManifestService.List(c.Request.Context(), primitive.M{})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, apps)
+	if len(manifests) == 0 {
+		c.JSON(http.StatusOK, gin.H{"data": []model.Manifest{}})
+	}
+	c.JSON(http.StatusOK, manifests)
 }
 
 // Get

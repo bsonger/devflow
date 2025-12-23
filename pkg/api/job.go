@@ -127,6 +127,9 @@ func (h *JobHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
+	if len(jobs) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"data": []model.Manifest{}})
+		return
+	}
 	c.JSON(http.StatusOK, jobs)
 }
