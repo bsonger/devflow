@@ -3,12 +3,14 @@ package router
 import (
 	"github.com/bsonger/devflow-common/client/logging"
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"net/http"
+	"time"
 )
 
 // NewRouter creates the main Gin router.
@@ -27,6 +29,14 @@ func NewRouter() *gin.Engine {
 		otelgin.Middleware("devflow", otelgin.WithFilter(myFilter)),
 		//GinMetricsMiddleware(),
 		GinZapLogger(logging.LoggerWithContext),
+		cors.New(cors.Config{
+			AllowOrigins:     []string{"*"}, // 允许所有来源
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"*"},
+			ExposeHeaders:    []string{"Content-Length"},
+			AllowCredentials: true,
+			MaxAge:           12 * time.Hour,
+		}),
 	)
 
 	// 1️⃣ Swagger UI 路由
