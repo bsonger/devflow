@@ -8,10 +8,11 @@ import (
 func RegisterApplicationRoutes(rg *gin.RouterGroup) {
 	app := rg.Group("/applications")
 
-	app.POST("", api.ApplicationRouteApi.Create)
+	app.GET("", api.ApplicationRouteApi.List)
 	app.GET("/:id", api.ApplicationRouteApi.Get)
+	app.POST("", api.ApplicationRouteApi.Create)
 	app.PUT("/:id", api.ApplicationRouteApi.Update)
 	app.DELETE("/:id", api.ApplicationRouteApi.Delete)
-	app.GET("/", api.ApplicationRouteApi.List)
+
 	RegisterManifestRoutes(app)
 }

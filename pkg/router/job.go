@@ -6,11 +6,9 @@ import (
 )
 
 func RegisterJobRoutes(rg *gin.RouterGroup) {
-	app := rg.Group("/jobs")
+	job := rg.Group("/jobs")
 
-	app.POST("", api.JobRouteApi.Create)
-	app.GET("/:id", api.JobRouteApi.Get)
-	//app.PUT("/:id", api.JobRouteApi.Update)
-	//app.DELETE("/:id", api.JobRouteApi.Delete)
-	app.GET("/", api.JobRouteApi.List)
+	job.GET("", api.JobRouteApi.List)
+	job.GET("/:id", api.JobRouteApi.Get)
+	job.POST("", api.JobRouteApi.Create)
 }

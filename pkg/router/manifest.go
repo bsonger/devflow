@@ -6,8 +6,9 @@ import (
 )
 
 func RegisterManifestRoutes(rg *gin.RouterGroup) {
+	manifest := rg.Group("/manifests")
 
-	rg.POST("/manifests", api.ManifestRouteApi.Create)
-	rg.GET("/manifests", api.ManifestRouteApi.List)
-	rg.GET("/manifests/:id", api.ManifestRouteApi.Get)
+	manifest.GET("", api.ManifestRouteApi.List)
+	manifest.GET("/:id", api.ManifestRouteApi.Get)
+	manifest.POST("", api.ManifestRouteApi.Create)
 }
