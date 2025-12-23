@@ -70,10 +70,19 @@ func InitConfig(ctx context.Context, config *Config) error {
 		return err
 	}
 
-	mongo.InitMongo(ctx, config.Mongo, logging.Logger)
+	_, err = mongo.InitMongo(ctx, config.Mongo, logging.Logger)
+	if err != nil {
+		return err
+	}
 	kubeconfig, err := LoadKubeConfig()
-	tekton.InitTektonClient(ctx, kubeconfig, logging.Logger)
-	argo.InitArgoCdClient(kubeconfig)
+	err = tekton.InitTektonClient(ctx, kubeconfig, logging.Logger)
+	if err != nil {
+		return err
+	}
+	err = argo.InitArgoCdClient(kubeconfig)
+	if err != nil {
+		return err
+	}
 	model.InitConfigRepo(config.Repo)
 	return nil
 }
