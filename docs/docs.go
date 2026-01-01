@@ -164,6 +164,146 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/configurations": {
+            "get": {
+                "tags": [
+                    "Configuration"
+                ],
+                "summary": "获取配置列表",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Configuration"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "创建一个新的配置",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Configuration"
+                ],
+                "summary": "创建配置",
+                "parameters": [
+                    {
+                        "description": "Configuration Data",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Configuration"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/configurations/{id}": {
+            "get": {
+                "tags": [
+                    "Configuration"
+                ],
+                "summary": "获取配置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Configuration"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "Configuration"
+                ],
+                "summary": "更新配置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Configuration Data",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.Configuration"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Configuration"
+                ],
+                "summary": "删除配置",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Configuration ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/jobs": {
             "get": {
                 "tags": [
@@ -400,11 +540,91 @@ const docTemplate = `{
                 "active_manifest_name": {
                     "type": "string"
                 },
+                "config_maps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ConfigMap"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "deleted_at": {
                     "type": "string"
+                },
+                "envs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/model.EnvVar"
+                        }
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "internet": {
+                    "$ref": "#/definitions/model.Internet"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "project_name": {
+                    "type": "string"
+                },
+                "replica": {
+                    "type": "integer"
+                },
+                "repo_url": {
+                    "type": "string"
+                },
+                "service": {
+                    "$ref": "#/definitions/model.Service"
+                },
+                "status": {
+                    "description": "当前状态（来自 Job 的结果）",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/model.ReleaseType"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ConfigMap": {
+            "type": "object",
+            "properties": {
+                "files_path": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "mount_path": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Configuration": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.File"
+                    }
                 },
                 "id": {
                     "type": "string"
@@ -412,17 +632,43 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "repo_url": {
-                    "type": "string"
-                },
-                "status": {
-                    "description": "当前状态（来自 Job 的结果）",
-                    "type": "string"
-                },
                 "updated_at": {
                     "type": "string"
                 }
             }
+        },
+        "model.EnvVar": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.File": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Internet": {
+            "type": "string",
+            "enum": [
+                "internal",
+                "external"
+            ],
+            "x-enum-varnames": [
+                "Internal",
+                "External"
+            ]
         },
         "model.Job": {
             "type": "object",
@@ -495,11 +741,26 @@ const docTemplate = `{
                     "description": "git branch",
                     "type": "string"
                 },
+                "config_maps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ConfigMap"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },
                 "deleted_at": {
                     "type": "string"
+                },
+                "envs": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/model.EnvVar"
+                        }
+                    }
                 },
                 "git_repo": {
                     "description": "对应 Application repo",
@@ -508,9 +769,8 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
-                "image": {
-                    "description": "Docker 镜像地址",
-                    "type": "string"
+                "internet": {
+                    "$ref": "#/definitions/model.Internet"
                 },
                 "name": {
                     "type": "string"
@@ -518,6 +778,12 @@ const docTemplate = `{
                 "pipeline_id": {
                     "description": "Tekton PipelineRun ID",
                     "type": "string"
+                },
+                "replica": {
+                    "type": "integer"
+                },
+                "service": {
+                    "$ref": "#/definitions/model.Service"
                 },
                 "status": {
                     "description": "running, success, failed",
@@ -533,6 +799,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/model.ManifestStep"
                     }
+                },
+                "type": {
+                    "$ref": "#/definitions/model.ReleaseType"
                 },
                 "updated_at": {
                     "type": "string"
@@ -574,6 +843,44 @@ const docTemplate = `{
                 },
                 "task_run": {
                     "type": "string"
+                }
+            }
+        },
+        "model.Port": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "target_port": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ReleaseType": {
+            "type": "string",
+            "enum": [
+                "normal",
+                "canary",
+                "blue-green"
+            ],
+            "x-enum-varnames": [
+                "Normal",
+                "Canary",
+                "BlueGreen"
+            ]
+        },
+        "model.Service": {
+            "type": "object",
+            "properties": {
+                "ports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Port"
+                    }
                 }
             }
         },

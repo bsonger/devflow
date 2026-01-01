@@ -5,22 +5,92 @@ definitions:
         type: string
       active_manifest_name:
         type: string
+      config_maps:
+        items:
+          $ref: '#/definitions/model.ConfigMap'
+        type: array
       created_at:
         type: string
       deleted_at:
         type: string
+      envs:
+        additionalProperties:
+          items:
+            $ref: '#/definitions/model.EnvVar'
+          type: array
+        type: object
+      id:
+        type: string
+      internet:
+        $ref: '#/definitions/model.Internet'
+      name:
+        type: string
+      project_name:
+        type: string
+      replica:
+        type: integer
+      repo_url:
+        type: string
+      service:
+        $ref: '#/definitions/model.Service'
+      status:
+        description: 当前状态（来自 Job 的结果）
+        type: string
+      type:
+        $ref: '#/definitions/model.ReleaseType'
+      updated_at:
+        type: string
+    type: object
+  model.ConfigMap:
+    properties:
+      files_path:
+        additionalProperties:
+          type: string
+        type: object
+      mount_path:
+        type: string
+      name:
+        type: string
+    type: object
+  model.Configuration:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      files:
+        items:
+          $ref: '#/definitions/model.File'
+        type: array
       id:
         type: string
       name:
         type: string
-      repo_url:
-        type: string
-      status:
-        description: 当前状态（来自 Job 的结果）
-        type: string
       updated_at:
         type: string
     type: object
+  model.EnvVar:
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  model.File:
+    properties:
+      content:
+        type: string
+      name:
+        type: string
+    type: object
+  model.Internet:
+    enum:
+    - internal
+    - external
+    type: string
+    x-enum-varnames:
+    - Internal
+    - External
   model.Job:
     properties:
       application_id:
@@ -72,23 +142,36 @@ definitions:
       branch:
         description: git branch
         type: string
+      config_maps:
+        items:
+          $ref: '#/definitions/model.ConfigMap'
+        type: array
       created_at:
         type: string
       deleted_at:
         type: string
+      envs:
+        additionalProperties:
+          items:
+            $ref: '#/definitions/model.EnvVar'
+          type: array
+        type: object
       git_repo:
         description: 对应 Application repo
         type: string
       id:
         type: string
-      image:
-        description: Docker 镜像地址
-        type: string
+      internet:
+        $ref: '#/definitions/model.Internet'
       name:
         type: string
       pipeline_id:
         description: Tekton PipelineRun ID
         type: string
+      replica:
+        type: integer
+      service:
+        $ref: '#/definitions/model.Service'
       status:
         allOf:
         - $ref: '#/definitions/model.ManifestStatus'
@@ -98,6 +181,8 @@ definitions:
         items:
           $ref: '#/definitions/model.ManifestStep'
         type: array
+      type:
+        $ref: '#/definitions/model.ReleaseType'
       updated_at:
         type: string
     type: object
@@ -127,6 +212,32 @@ definitions:
         type: string
       task_run:
         type: string
+    type: object
+  model.Port:
+    properties:
+      name:
+        type: string
+      port:
+        type: integer
+      target_port:
+        type: integer
+    type: object
+  model.ReleaseType:
+    enum:
+    - normal
+    - canary
+    - blue-green
+    type: string
+    x-enum-varnames:
+    - Normal
+    - Canary
+    - BlueGreen
+  model.Service:
+    properties:
+      ports:
+        items:
+          $ref: '#/definitions/model.Port'
+        type: array
     type: object
   model.StepStatus:
     enum:
@@ -244,6 +355,97 @@ paths:
       summary: 更新应用
       tags:
       - Application
+  /api/v1/configurations:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Configuration'
+            type: array
+      summary: 获取配置列表
+      tags:
+      - Configuration
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的配置
+      parameters:
+      - description: Configuration Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Configuration'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建配置
+      tags:
+      - Configuration
+  /api/v1/configurations/{id}:
+    delete:
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 删除配置
+      tags:
+      - Configuration
+    get:
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Configuration'
+      summary: 获取配置
+      tags:
+      - Configuration
+    put:
+      parameters:
+      - description: Configuration ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Configuration Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/model.Configuration'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新配置
+      tags:
+      - Configuration
   /api/v1/jobs:
     get:
       responses:

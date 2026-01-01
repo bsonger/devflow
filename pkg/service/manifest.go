@@ -37,6 +37,14 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	// 2️⃣ 初始化 Manifest 基础信息
 	m.GitRepo = app.RepoURL
 	m.ApplicationName = app.Name
+
+	m.Replica = app.Replica
+	m.Service = app.Service
+	m.Type = app.Type
+	m.Envs = app.Envs
+	m.ConfigMaps = app.ConfigMaps
+	m.Internet = app.Internet
+
 	m.Name = model.GenerateManifestVersion(app.Name)
 	m.Status = model.ManifestPending
 	m.WithCreateDefault()
