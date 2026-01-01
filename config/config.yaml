@@ -12,6 +12,3 @@ otel:
 repo:
   address: "https://github.com/bsonger/manifests.git"
   path: "manifests"
-consul:
-  address: https://consul.bei.com:30000
-  key: app/devflow.yaml

@@ -1,21 +1,14 @@
 server:
   port: 8080
-
 mongo:
   uri: "mongodb://devflow:devflow@mongodb.database.svc.cluster.local:27017/devflow?authSource=devflow"
   db: "devflow"
-
 log:
   level: "info"
   format: "json"   # json | console
-
 otel:
   endpoint: "collector.open-telemetry.svc.cluster.local:4317"
   service_name: "devflow"
-
 repo:
   address: "https://github.com/bsonger/manifests.git"
   path: "manifests"
-consul:
-  address: http://consul-consul-server.consul.svc.cluster.local:8500
-  key: app/devflow.yaml

@@ -17,6 +17,3 @@ otel:
 repo:
   address: "https://github.com/bsonger/manifests.git"
   path: "manifests"
-consul:
-  address: http://consul-consul-server.consul.svc.cluster.local:8500
-  key: app/devflow.yaml

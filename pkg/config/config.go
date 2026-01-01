@@ -19,7 +19,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bsonger/devflow-common/client/consul"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 )
@@ -53,10 +52,10 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = consul.InitConsulClient(config.Consul)
-	if err != nil {
-		return nil, err
-	}
+	//err = consul.InitConsulClient(config.Consul)
+	//if err != nil {
+	//	return nil, err
+	//}
 	//consul.LoadConsulConfigAndMerge(config.Consul)
 
 	return config, nil
