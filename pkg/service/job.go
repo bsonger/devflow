@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/bsonger/devflow-common/client/argo"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 
 	"github.com/bsonger/devflow-common/client/logging"
@@ -116,6 +117,12 @@ func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
 	log := logging.LoggerWithContext(ctx)
 	var err error
 	application := job.GenerateApplication()
+	// 3.2 获取当前 trace context
+	sc := trace.SpanContextFromContext(ctx)
+	application.Annotations = map[string]string{
+		model.TraceIDAnnotation: sc.TraceID().String(),
+		model.SpanAnnotation:    sc.SpanID().String(),
+	}
 	switch job.Type {
 	case model.JobInstall:
 		err = argo.CreateApplication(ctx, application)

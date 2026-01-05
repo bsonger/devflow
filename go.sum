@@ -118,6 +118,10 @@ github.com/bsonger/devflow-common v0.0.0-20260103155943-b515e898910d h1:/MdZpFen
 github.com/bsonger/devflow-common v0.0.0-20260103155943-b515e898910d/go.mod h1:ZISM5/qh+yqnQqGaaascUK1YgsUpAow0fncZz3AnL+0=
 github.com/bsonger/devflow-common v0.0.0-20260104131303-b21522835d88 h1:0aV42tEtfoo9Yrd+Ros37G2bYYqh686vHZZwc+Lt45A=
 github.com/bsonger/devflow-common v0.0.0-20260104131303-b21522835d88/go.mod h1:ZISM5/qh+yqnQqGaaascUK1YgsUpAow0fncZz3AnL+0=
+github.com/bsonger/devflow-common v0.0.0-20260105205634-9a198dbb2377 h1:XYFpKiGCdJlNwPJYFTecRQcHjhlCSeGk3YG+IkuAv3s=
+github.com/bsonger/devflow-common v0.0.0-20260105205634-9a198dbb2377/go.mod h1:ZISM5/qh+yqnQqGaaascUK1YgsUpAow0fncZz3AnL+0=
+github.com/bsonger/devflow-common v0.0.0-20260105210419-0e4ecd14bf9f h1:0DrqghUMbSX6JtGQRVVyzAlCY/kvgXf4xmJlAkvbY9s=
+github.com/bsonger/devflow-common v0.0.0-20260105210419-0e4ecd14bf9f/go.mod h1:ZISM5/qh+yqnQqGaaascUK1YgsUpAow0fncZz3AnL+0=
 github.com/bytedance/gopkg v0.1.3 h1:TPBSwH8RsouGCBcMBktLt1AymVo2TVsBVCY4b6TnZ/M=
 github.com/bytedance/gopkg v0.1.3/go.mod h1:576VvJ+eJgyCzdjS+c4+77QF3p7ubbtiKARP3TxducM=
 github.com/bytedance/sonic v1.14.2 h1:k1twIoe97C1DtYUo+fZQy865IuHia4PR5RPiuGPPIIE=
