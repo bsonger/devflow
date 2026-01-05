@@ -125,7 +125,7 @@ func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
 	}
 	application.Labels = map[string]string{
 		"status":         string(model.JobRunning),
-		model.JobIDLabel: job.ApplicationId.Hex(),
+		model.JobIDLabel: job.ID.Hex(),
 	}
 
 	switch job.Type {
