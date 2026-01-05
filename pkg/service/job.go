@@ -123,6 +123,7 @@ func (s *jobService) syncArgo(ctx context.Context, job *model.Job) error {
 		model.TraceIDAnnotation: sc.TraceID().String(),
 		model.SpanAnnotation:    sc.SpanID().String(),
 	}
+	application.Labels["status"] = "Running"
 	switch job.Type {
 	case model.JobInstall:
 		err = argo.CreateApplication(ctx, application)
