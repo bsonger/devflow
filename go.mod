@@ -5,7 +5,7 @@ go 1.25.4
 require (
 	github.com/argoproj/argo-cd/v3 v3.2.2
 	github.com/argoproj/gitops-engine v0.7.1-0.20251217140045-5baed5604d2d
-	github.com/bsonger/devflow-common v0.0.0-20260105212459-251c2f062a74
+	github.com/bsonger/devflow-common v0.0.0-20260110120336-842a8361feb4
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/prometheus/client_golang v1.23.2
@@ -109,6 +109,8 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.6.1-0.20241114170450-2d3c2a9cc518 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
+	github.com/grafana/pyroscope-go v1.2.7 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

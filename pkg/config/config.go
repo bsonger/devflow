@@ -7,6 +7,7 @@ import (
 	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/bsonger/devflow-common/client/mongo"
 	devflowOtel "github.com/bsonger/devflow-common/client/otel"
+	"github.com/bsonger/devflow-common/client/pyroscope"
 	"github.com/bsonger/devflow-common/client/tekton"
 	"github.com/bsonger/devflow-common/model"
 	"net/http"
@@ -24,12 +25,13 @@ import (
 )
 
 type Config struct {
-	Server *model.ServerConfig `mapstructure:"server" json:"server" yaml:"server"`
-	Mongo  *model.MongoConfig  `mapstructure:"mongo"  json:"mongo"  yaml:"mongo"`
-	Log    *model.LogConfig    `mapstructure:"log"    json:"log"    yaml:"log"`
-	Otel   *model.OtelConfig   `mapstructure:"otel"   json:"otel"   yaml:"otel"`
-	Repo   *model.Repo         `mapstructure:"repo"   json:"repo"   yaml:"repo"`
-	Consul *model.Consul       `mapstructure:"consul" json:"consul" yaml:"consul"`
+	Server    *model.ServerConfig `mapstructure:"server" json:"server" yaml:"server"`
+	Mongo     *model.MongoConfig  `mapstructure:"mongo"  json:"mongo"  yaml:"mongo"`
+	Log       *model.LogConfig    `mapstructure:"log"    json:"log"    yaml:"log"`
+	Otel      *model.OtelConfig   `mapstructure:"otel"   json:"otel"   yaml:"otel"`
+	Repo      *model.Repo         `mapstructure:"repo"   json:"repo"   yaml:"repo"`
+	Consul    *model.Consul       `mapstructure:"consul" json:"consul" yaml:"consul"`
+	Pyroscope string              `mapstructure:"pyroscope" json:"pyroscope" yaml:"pyroscope"`
 }
 
 func Load() (*Config, error) {
@@ -64,6 +66,7 @@ func Load() (*Config, error) {
 func InitConfig(ctx context.Context, config *Config) error {
 	logging.InitZapLogger(ctx, config.Log)
 	_, err := devflowOtel.InitOtel(ctx, config.Otel)
+	pyroscope.InitPyroscope("devflow", config.Pyroscope)
 	err = devflowOtel.InitMetricProvider()
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/grafana/pyroscope-go"
 	"go.uber.org/zap"
 )
 
@@ -24,6 +25,28 @@ func routeLabel(c *gin.Context) string {
 		return p
 	}
 	return "unknown"
+}
+
+/********************
+ * Pyroscope Middleware
+ ********************/
+func PyroscopeMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取 request context
+		ctx := c.Request.Context()
+
+		// 获取 method 和 route（动态）
+		method := c.Request.Method
+		route := c.FullPath()
+		if route == "" {
+			route = "unknown"
+		}
+
+		// TagWrapper 必须包裹整个请求生命周期
+		pyroscope.TagWrapper(ctx, pyroscope.Labels("http.route", route, "http.method", method), func(ctx context.Context) {
+			c.Next()
+		})
+	}
 }
 
 /********************

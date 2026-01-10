@@ -27,6 +27,7 @@ func NewRouter() *gin.Engine {
 	r.Use(
 		GinZapRecovery(logging.LoggerWithContext), // ⭐ 最前
 		otelgin.Middleware("devflow", otelgin.WithFilter(myFilter)),
+		PyroscopeMiddleware(),
 		//GinMetricsMiddleware(),
 		GinZapLogger(logging.LoggerWithContext),
 		cors.New(cors.Config{
@@ -49,7 +50,16 @@ func NewRouter() *gin.Engine {
 	RegisterApplicationRoutes(api)
 	RegisterManifestRoutes(api)
 	RegisterJobRoutes(api)
-	//service.StartTektonInformer(context.Background())
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	return r
+}
+
+func StartMetricsServer(addr string) {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	go func() {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			panic(err)
+		}
+	}()
 }

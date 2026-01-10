@@ -30,6 +30,7 @@ func main() {
 		panic(err)
 	}
 
+	router.StartMetricsServer(":9090")
 	r := router.NewRouter()
 
 	port := cfg.Server.Port
