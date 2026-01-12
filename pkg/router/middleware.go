@@ -139,7 +139,7 @@ func GinZapLogger(loggerFunc func(ctx context.Context) *zap.Logger) gin.HandlerF
 			fields = append(fields, zap.String("error", errs.String()))
 		}
 
-		loggerFunc(c).Info("http request", fields...)
+		loggerFunc(c.Request.Context()).Info("http request", fields...)
 	}
 }
 
