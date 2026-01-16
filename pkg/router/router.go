@@ -1,7 +1,6 @@
 package router
 
 import (
-	"github.com/bsonger/devflow-common/client/logging"
 	_ "github.com/bsonger/devflow/docs" // swagger docs 自动生成
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -25,11 +24,12 @@ func NewRouter() *gin.Engine {
 	}
 
 	r.Use(
-		GinZapRecovery(logging.LoggerWithContext), // ⭐ 最前
+		LoggerMiddleware(),
+		GinZapRecovery(),
 		otelgin.Middleware("devflow", otelgin.WithFilter(myFilter)),
 		PyroscopeMiddleware(),
 		//GinMetricsMiddleware(),
-		GinZapLogger(logging.LoggerWithContext),
+		GinZapLogger(),
 		cors.New(cors.Config{
 			AllowOrigins:     []string{"*"}, // 允许所有来源
 			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

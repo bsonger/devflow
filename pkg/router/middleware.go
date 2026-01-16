@@ -2,6 +2,7 @@ package router
 
 import (
 	"context"
+	"github.com/bsonger/devflow-common/client/logging"
 	"strings"
 	"time"
 
@@ -117,41 +118,71 @@ func PyroscopeMiddleware() gin.HandlerFunc {
 //	}
 //}
 
-/********************
- * Zap Logger
- ********************/
-
-func GinZapLogger(loggerFunc func(ctx context.Context) *zap.Logger) gin.HandlerFunc {
+func GinZapLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
+
+		req := c.Request
+		path := req.URL.Path
+		rawQuery := req.URL.RawQuery
+
 		c.Next()
 
+		latency := time.Since(start)
+		status := c.Writer.Status()
+		route := c.FullPath() // 关键：逻辑路由（/users/:id）
+
 		fields := []zap.Field{
-			zap.String("method", c.Request.Method),
-			zap.String("path", c.Request.URL.Path),
-			zap.Int("status", c.Writer.Status()),
-			zap.String("client_ip", c.ClientIP()),
-			zap.String("user_agent", c.Request.UserAgent()),
-			zap.Duration("latency", time.Since(start)),
+			// ---- HTTP 语义（标准字段）----
+			zap.String("http.method", req.Method),
+			zap.String("http.route", route),
+			zap.String("http.target", buildTarget(path, rawQuery)),
+			zap.Int("http.status_code", status),
+			zap.String("client.ip", c.ClientIP()),
+			zap.String("user_agent.original", req.UserAgent()),
+			zap.Duration("http.server.duration", latency),
 		}
 
+		// ---- 错误信息 ----
 		if errs := c.Errors.ByType(gin.ErrorTypePrivate); len(errs) > 0 {
-			fields = append(fields, zap.String("error", errs.String()))
+			fields = append(fields,
+				zap.String("error.message", errs.String()),
+			)
 		}
 
-		loggerFunc(c.Request.Context()).Info("http request", fields...)
+		logger := logging.LoggerFromContext(req.Context())
+
+		// ---- Level 策略（非常重要）----
+		switch {
+		case status >= 500:
+			logger.Error("http request", fields...)
+		case status >= 400:
+			logger.Warn("http request", fields...)
+		case latency > time.Second:
+			logger.Warn("slow http request", fields...)
+		default:
+			logger.Info("http request", fields...)
+		}
 	}
+}
+
+func buildTarget(path, rawQuery string) string {
+	if rawQuery == "" {
+		return path
+	}
+	return path + "?" + rawQuery
 }
 
 /********************
  * Recovery
  ********************/
 
-func GinZapRecovery(loggerFunc func(ctx context.Context) *zap.Logger) gin.HandlerFunc {
+func GinZapRecovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if rec := recover(); rec != nil {
-				loggerFunc(c).Error("panic recovered",
+				logger := logging.LoggerFromContext(c.Request.Context())
+				logger.Error("panic recovered",
 					zap.Any("panic", rec),
 					zap.String("method", c.Request.Method),
 					zap.String("path", c.Request.URL.Path),
@@ -162,6 +193,14 @@ func GinZapRecovery(loggerFunc func(ctx context.Context) *zap.Logger) gin.Handle
 				})
 			}
 		}()
+		c.Next()
+	}
+}
+
+func LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx := logging.InjectLogger(c.Request.Context(), logging.Logger)
+		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	}
 }

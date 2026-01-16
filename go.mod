@@ -5,7 +5,7 @@ go 1.25.4
 require (
 	github.com/argoproj/argo-cd/v3 v3.2.2
 	github.com/argoproj/gitops-engine v0.7.1-0.20251217140045-5baed5604d2d
-	github.com/bsonger/devflow-common v0.0.0-20260113150342-1ee2f9c0df23
+	github.com/bsonger/devflow-common v0.0.0-20260116170326-5ca36dbf2fe7
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/grafana/pyroscope-go v1.2.7

@@ -64,7 +64,7 @@ func Load() (*Config, error) {
 }
 
 func InitConfig(ctx context.Context, config *Config) error {
-	logging.InitZapLogger(ctx, config.Log)
+	logging.InitZapLogger(config.Log)
 	_, err := devflowOtel.InitOtel(ctx, config.Otel)
 	pyroscope.InitPyroscope("devflow", config.Pyroscope)
 	err = devflowOtel.InitMetricProvider()
