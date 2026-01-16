@@ -53,6 +53,7 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	}
 	job.ApplicationName = app.Name
 	job.ProjectName = app.ProjectName
+	job.Env = "prod"
 
 	// 3️⃣ 初始化 Job
 	job.Status = model.JobPending
