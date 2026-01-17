@@ -4,104 +4,172 @@ import (
 	"context"
 	"errors"
 	"github.com/bsonger/devflow-common/client/argo"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
-
 	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/bsonger/devflow-common/client/mongo"
 	"github.com/bsonger/devflow-common/model"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 var JobService = &jobService{}
 
 type jobService struct{}
 
-//func NewJobService() *jobService {
-//	return &jobService{}
-//}
-
+//	func NewJobService() *jobService {
+//		return &jobService{}
+//	}
 func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.ObjectID, error) {
+	log := logging.LoggerWithContext(ctx).With(
+		zap.String("job.type", job.Type),
+		zap.String("manifest.id", job.ManifestID.Hex()),
+	)
 
-	log := logging.LoggerWithContext(ctx)
+	log.Info("job create started")
 
-	// 1️⃣ 获取 Manifest
+	// ---------- 1️⃣ 获取 Manifest ----------
 	manifest, err := ManifestService.Get(ctx, job.ManifestID)
 	if err != nil {
-		log.Error("Get manifest failed",
-			zap.String("manifest_id", job.ManifestID.Hex()),
-			zap.Error(err),
-		)
+		log.Error("get manifest failed", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
 
 	job.ManifestName = manifest.Name
 	job.ApplicationId = manifest.ApplicationId
 
+	// ---------- 2️⃣ 默认值 ----------
 	if job.Type == "" {
 		job.Type = model.JobUpgrade
 	}
 
-	// 2️⃣ 获取 Application
+	// ---------- 3️⃣ 获取 Application ----------
 	app, err := ApplicationService.Get(ctx, manifest.ApplicationId)
 	if err != nil {
-		log.Error("Get application failed",
-			zap.String("application_id", manifest.ApplicationId.Hex()),
+		log.Error("get application failed",
+			zap.String("application.id", manifest.ApplicationId.Hex()),
 			zap.Error(err),
 		)
 		return primitive.NilObjectID, err
 	}
+
 	job.ApplicationName = app.Name
 	job.ProjectName = app.ProjectName
 	job.Env = "prod"
 
-	// 3️⃣ 初始化 Job
+	// ---------- 4️⃣ 初始化 Job ----------
 	job.Status = model.JobPending
 	job.WithCreateDefault()
 
-	// 4️⃣ 先落库（非常关键）
+	// ---------- 5️⃣ 落库 ----------
 	if err := mongo.Repo.Create(ctx, job); err != nil {
-		log.Error("Create job record failed", zap.Error(err))
+		log.Error("create job record failed", zap.Error(err))
 		return primitive.NilObjectID, err
 	}
 
-	log.Info("Job created",
-		zap.String("job_id", job.ID.Hex()),
-		zap.String("type", job.Type),
+	log = log.With(
+		zap.String("job.id", job.ID.Hex()),
+		zap.String("application.id", job.ApplicationId.Hex()),
 	)
 
-	// 5️⃣ 更新 Job → Running
+	log.Info("job record created")
+
+	// ---------- 6️⃣ 状态 → Running ----------
 	if err := s.updateStatus(ctx, job.ID, model.JobRunning); err != nil {
+		log.Error("update job status to running failed", zap.Error(err))
 		return job.ID, err
 	}
 
-	// 6️⃣ 调用 Argo（独立 Span）
+	log.Info("job status changed",
+		zap.String("job.status", string(job.Status)),
+	)
+
+	// ---------- 7️⃣ 调用 Argo ----------
 	if err := s.syncArgo(ctx, job); err != nil {
+		s.handleSyncArgoError(ctx, job, err)
 		return job.ID, err
 	}
+
+	log.Info("job synced to argo successfully")
 
 	return job.ID, nil
 }
 
-func (s *jobService) Get(ctx context.Context, id primitive.ObjectID) (*model.Job, error) {
-	app := &model.Job{}
-	err := mongo.Repo.FindByID(ctx, app, id)
-	return app, err
+func (s *jobService) handleSyncArgoError(ctx context.Context, job *model.Job, err error) {
+	log := logging.LoggerWithContext(ctx).With(
+		zap.String("job.id", job.ID.Hex()),
+		zap.String("job.type", job.Type),
+	)
+
+	log.Error("sync argo failed", zap.Error(err))
+
+	// 1️⃣ 更新状态 → Failed
+	if uErr := s.updateStatus(ctx, job.ID, model.JobFailed); uErr != nil {
+		log.Error("update job status to failed failed", zap.Error(uErr))
+	}
 }
 
-func (s *jobService) Update(ctx context.Context, app *model.Job) error {
-	return mongo.Repo.Update(ctx, app)
+func (s *jobService) Get(ctx context.Context, id primitive.ObjectID) (*model.Job, error) {
+	log := logging.LoggerWithContext(ctx).With(
+		zap.String("job.id", id.Hex()),
+		zap.String("operation", "get_job"),
+	)
+
+	job := &model.Job{}
+	err := mongo.Repo.FindByID(ctx, job, id)
+	if err != nil {
+		log.Error("get job failed", zap.Error(err))
+		return nil, err
+	}
+
+	log.Debug("job fetched")
+	return job, nil
+}
+
+func (s *jobService) Update(ctx context.Context, job *model.Job) error {
+	log := logging.LoggerWithContext(ctx).With(
+		zap.String("job.id", job.ID.Hex()),
+		zap.String("operation", "update_job"),
+	)
+
+	if err := mongo.Repo.Update(ctx, job); err != nil {
+		log.Error("update job failed", zap.Error(err))
+		return err
+	}
+
+	log.Debug("job updated")
+	return nil
 }
 
 func (s *jobService) Delete(ctx context.Context, id primitive.ObjectID) error {
-	app := &model.Job{}
-	return mongo.Repo.Delete(ctx, app, id)
+	log := logging.LoggerWithContext(ctx).With(
+		zap.String("job.id", id.Hex()),
+		zap.String("operation", "delete_job"),
+	)
+
+	job := &model.Job{}
+	if err := mongo.Repo.Delete(ctx, job, id); err != nil {
+		log.Error("delete job failed", zap.Error(err))
+		return err
+	}
+
+	log.Info("job deleted")
+	return nil
 }
 
 func (s *jobService) List(ctx context.Context, filter primitive.M) ([]*model.Job, error) {
-	var apps []*model.Job
-	err := mongo.Repo.List(ctx, &model.Job{}, filter, &apps)
-	return apps, err
+	log := logging.LoggerWithContext(ctx).With(
+		zap.String("operation", "list_jobs"),
+		zap.Any("filter", filter),
+	)
+
+	var jobs []*model.Job
+	if err := mongo.Repo.List(ctx, &model.Job{}, filter, &jobs); err != nil {
+		log.Error("list jobs failed", zap.Error(err))
+		return nil, err
+	}
+
+	log.Debug("list jobs success", zap.Int("count", len(jobs)))
+	return jobs, nil
 }
 
 func (s *jobService) updateStatus(ctx context.Context, jobID primitive.ObjectID, status model.JobStatus) error {

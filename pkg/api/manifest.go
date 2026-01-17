@@ -35,32 +35,12 @@ func (h *ManifestHandler) Create(c *gin.Context) {
 		return
 	}
 
-	//if m.Branch == "" {
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": "branch is required"})
-	//	return
-	//}
-
-	//// 根据 Application 获取 gitRepo
-
-	//// 初始化 Steps
-	//m.Steps = []model.Step{
-	//	{Name: "build_image", Status: "pending"},
-	//	{Name: "package_manifest", Status: "pending"},
-	//	{Name: "push_github", Status: "pending"},
-	//	{Name: "push_aliyun", Status: "pending"},
-	//}
-
-	//m.Status = "running"
-
 	// 保存 Manifest
 	id, err := service.ManifestService.CreateManifest(c.Request.Context(), &m)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// 异步触发 Pipeline
-	//go service.ManifestService.TriggerPipeline(&m)
 
 	c.JSON(http.StatusOK, gin.H{"id": id.Hex()})
 }
