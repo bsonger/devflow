@@ -117,12 +117,12 @@ func PyroscopeMiddleware() gin.HandlerFunc {
 //		responseSize.Record(ctx, int64(c.Writer.Size()), metric.WithAttributes(attrs...))
 //	}
 //}
-
 func GinZapLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
-
 		req := c.Request
+
+		// 提前记录，避免 c.Next 后被修改
 		path := req.URL.Path
 		rawQuery := req.URL.RawQuery
 
@@ -130,35 +130,46 @@ func GinZapLogger() gin.HandlerFunc {
 
 		latency := time.Since(start)
 		status := c.Writer.Status()
-		route := c.FullPath() // 关键：逻辑路由（/users/:id）
+
+		// Gin 在 404 / NoRoute 时 FullPath 可能为空
+		route := c.FullPath()
+		if route == "" {
+			route = "unknown"
+		}
 
 		fields := []zap.Field{
-			// ---- HTTP 语义（标准字段）----
+			// ---- HTTP semantic conventions ----
 			zap.String("http.method", req.Method),
 			zap.String("http.route", route),
 			zap.String("http.target", buildTarget(path, rawQuery)),
 			zap.Int("http.status_code", status),
+
+			// ---- Network / Client ----
 			zap.String("client.ip", c.ClientIP()),
 			zap.String("user_agent.original", req.UserAgent()),
+
+			// ---- Timing ----
 			zap.Duration("http.server.duration", latency),
 		}
 
-		// ---- 错误信息 ----
-		if errs := c.Errors.ByType(gin.ErrorTypePrivate); len(errs) > 0 {
+		// ---- 错误（只取一次，避免重复）----
+		if len(c.Errors) > 0 {
+			err := c.Errors.Last()
 			fields = append(fields,
-				zap.String("error.message", errs.String()),
+				zap.String("error.message", err.Error()),
 			)
 		}
 
+		// 从 context 里取 logger（已注入 trace_id）
 		logger := logging.LoggerFromContext(req.Context())
 
-		// ---- Level 策略（非常重要）----
+		// ---- Level 策略（访问日志核心逻辑）----
 		switch {
 		case status >= 500:
 			logger.Error("http request", fields...)
 		case status >= 400:
 			logger.Warn("http request", fields...)
-		case latency > time.Second:
+		case latency >= time.Second:
 			logger.Warn("slow http request", fields...)
 		default:
 			logger.Info("http request", fields...)
