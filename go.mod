@@ -1,6 +1,6 @@
 module github.com/bsonger/devflow
 
-go 1.25.4
+go 1.25.5
 
 require (
 	github.com/argoproj/argo-cd/v3 v3.2.2
