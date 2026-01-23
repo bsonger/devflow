@@ -324,3 +324,57 @@ func (s *manifestService) GetManifestByPipelineID(ctx context.Context, pipelineI
 	}
 	return &m, nil
 }
+
+func (s *manifestService) Patch(ctx context.Context, id primitive.ObjectID, manifest *model.PatchManifestRequest) error {
+
+	logger := logging.LoggerWithContext(ctx)
+
+	logger.Info("patch manifest start",
+		zap.String("manifest_id", id.Hex()),
+	)
+
+	// 1️⃣ 构造 $set
+	set := bson.M{}
+
+	if manifest.Digest != "" {
+		set["digest"] = manifest.Digest
+	}
+
+	if manifest.CommitHash != "" {
+		set["commit_hash"] = manifest.CommitHash
+	}
+
+	// 2️⃣ 无有效字段直接返回（非常关键）
+	if len(set) == 0 {
+		logger.Warn("patch manifest skipped: no valid fields",
+			zap.String("manifest_id", id.Hex()),
+		)
+		return nil
+	}
+
+	set["updated_at"] = time.Now()
+
+	// 3️⃣ 执行 Patch
+	err := mongo.Repo.UpdateOne(
+		ctx,
+		&model.Manifest{},
+		bson.M{"_id": id},
+		bson.M{"$set": set},
+	)
+
+	if err != nil {
+		logger.Error("patch manifest failed",
+			zap.String("manifest_id", id.Hex()),
+			zap.Any("patch", set),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	logger.Info("patch manifest success",
+		zap.String("manifest_id", id.Hex()),
+		zap.Any("patched_fields", set),
+	)
+
+	return nil
+}

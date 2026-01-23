@@ -27,12 +27,12 @@ func NewRouter() *gin.Engine {
 		otelgin.Middleware("devflow", otelgin.WithFilter(myFilter)),
 		LoggerMiddleware(),
 		GinZapRecovery(),
-		PyroscopeMiddleware(),
+		//PyroscopeMiddleware(),
 		//GinMetricsMiddleware(),
 		GinZapLogger(),
 		cors.New(cors.Config{
 			AllowOrigins:     []string{"*"}, // 允许所有来源
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 			AllowHeaders:     []string{"*"},
 			ExposeHeaders:    []string{"Content-Length"},
 			AllowCredentials: true,

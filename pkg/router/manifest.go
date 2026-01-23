@@ -11,4 +11,5 @@ func RegisterManifestRoutes(rg *gin.RouterGroup) {
 	manifest.GET("", api.ManifestRouteApi.List)
 	manifest.GET("/:id", api.ManifestRouteApi.Get)
 	manifest.POST("", api.ManifestRouteApi.Create)
+	manifest.PATCH("/:id", api.ManifestRouteApi.Patch)
 }
