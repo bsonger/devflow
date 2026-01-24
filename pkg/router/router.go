@@ -27,7 +27,7 @@ func NewRouter() *gin.Engine {
 		otelgin.Middleware("devflow", otelgin.WithFilter(myFilter)),
 		LoggerMiddleware(),
 		GinZapRecovery(),
-		//PyroscopeMiddleware(),
+		PyroscopeMiddleware(),
 		//GinMetricsMiddleware(),
 		GinZapLogger(),
 		cors.New(cors.Config{
