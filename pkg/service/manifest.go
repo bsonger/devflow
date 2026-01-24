@@ -55,6 +55,7 @@ func (s *manifestService) CreateManifest(ctx context.Context, m *model.Manifest)
 	m.Envs = app.Envs
 	m.ConfigMaps = app.ConfigMaps
 	m.Internet = app.Internet
+	m.ID = primitive.NewObjectID()
 
 	m.Name = model.GenerateManifestVersion(app.Name)
 	m.Status = model.ManifestPending

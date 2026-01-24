@@ -74,8 +74,8 @@ func (s *jobService) Create(ctx context.Context, job *model.Job) (primitive.Obje
 	log.Info("job record created")
 
 	// ---------- 6️⃣ 状态 → Running ----------
-	if err := s.updateStatus(ctx, job.ID, model.JobRunning); err != nil {
-		log.Error("update job status to running failed", zap.Error(err))
+	if err := s.updateStatus(ctx, job.ID, model.JobSyncing); err != nil {
+		log.Error("update job status to syncing failed", zap.Error(err))
 		return job.ID, err
 	}
 
@@ -103,7 +103,7 @@ func (s *jobService) handleSyncArgoError(ctx context.Context, job *model.Job, er
 	log.Error("sync argo failed", zap.Error(err))
 
 	// 1️⃣ 更新状态 → Failed
-	if uErr := s.updateStatus(ctx, job.ID, model.JobFailed); uErr != nil {
+	if uErr := s.updateStatus(ctx, job.ID, model.JobSyncFailed); uErr != nil {
 		log.Error("update job status to failed failed", zap.Error(uErr))
 	}
 }

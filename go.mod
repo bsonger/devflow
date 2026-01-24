@@ -5,7 +5,7 @@ go 1.25.6
 require (
 	github.com/argoproj/argo-cd/v3 v3.2.2
 	github.com/argoproj/gitops-engine v0.7.1-0.20251217140045-5baed5604d2d
-	github.com/bsonger/devflow-common v0.0.0-20260123164204-7d5f47a86127
+	github.com/bsonger/devflow-common v0.0.0-20260124043258-5df152b471c3
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-gonic/gin v1.11.0
 	github.com/grafana/pyroscope-go v1.2.7
