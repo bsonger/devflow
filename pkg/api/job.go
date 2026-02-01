@@ -122,14 +122,54 @@ func (h *JobHandler) Delete(c *gin.Context) {
 // @Success 200 {array} model.Job
 // @Router  /api/v1/jobs [get]
 func (h *JobHandler) List(c *gin.Context) {
-	jobs, err := service.JobService.List(c.Request.Context(), primitive.M{})
+	filter := primitive.M{}
+	if !includeDeleted(c) {
+		filter["deleted_at"] = primitive.M{"$exists": false}
+	}
+	if appID := c.Query("application_id"); appID != "" {
+		id, err := primitive.ObjectIDFromHex(appID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid application_id"})
+			return
+		}
+		filter["application_id"] = id
+	}
+	if manifestID := c.Query("manifest_id"); manifestID != "" {
+		id, err := primitive.ObjectIDFromHex(manifestID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid manifest_id"})
+			return
+		}
+		filter["manifest_id"] = id
+	}
+	if status := c.Query("status"); status != "" {
+		filter["status"] = status
+	}
+	if jobType := c.Query("type"); jobType != "" {
+		filter["type"] = jobType
+	}
+	if projectName := c.Query("project_name"); projectName != "" {
+		filter["project_name"] = projectName
+	}
+	if appName := c.Query("application_name"); appName != "" {
+		filter["application_name"] = appName
+	}
+
+	jobs, err := service.JobService.List(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if len(jobs) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"data": []model.Manifest{}})
+
+	paging, err := parsePagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	total := len(jobs)
+	jobs = paginateSlice(jobs, paging)
+	setPaginationHeaders(c, total, paging)
+
 	c.JSON(http.StatusOK, jobs)
 }

@@ -177,6 +177,19 @@ func (s *manifestService) Update(ctx context.Context, m *model.Manifest) error {
 		zap.String("status", string(m.Status)),
 	)
 
+	current := &model.Manifest{}
+	if err := mongo.Repo.FindByID(ctx, current, m.GetID()); err != nil {
+		logger.Error("load manifest failed",
+			zap.String("manifest_id", m.GetID().Hex()),
+			zap.Error(err),
+		)
+		return err
+	}
+
+	m.CreatedAt = current.CreatedAt
+	m.DeletedAt = current.DeletedAt
+	m.WithUpdateDefault()
+
 	if err := mongo.Repo.Update(ctx, m); err != nil {
 		logger.Error("update manifest failed",
 			zap.String("manifest_id", m.GetID().Hex()),

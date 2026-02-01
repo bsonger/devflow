@@ -13,6 +13,7 @@ func RegisterApplicationRoutes(rg *gin.RouterGroup) {
 	app.POST("", api.ApplicationRouteApi.Create)
 	app.PUT("/:id", api.ApplicationRouteApi.Update)
 	app.DELETE("/:id", api.ApplicationRouteApi.Delete)
+	app.PATCH("/:id/active_manifest", api.ApplicationRouteApi.UpdateActiveManifest)
 
 	RegisterManifestRoutes(app)
 }

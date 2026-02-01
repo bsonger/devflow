@@ -53,14 +53,47 @@ func (h *ManifestHandler) Create(c *gin.Context) {
 // @Success 200 {array} model.Manifest
 // @Router  /api/v1/manifests [get]
 func (h *ManifestHandler) List(c *gin.Context) {
-	manifests, err := service.ManifestService.List(c.Request.Context(), primitive.M{})
+	filter := primitive.M{}
+	if !includeDeleted(c) {
+		filter["deleted_at"] = primitive.M{"$exists": false}
+	}
+	if appID := c.Query("application_id"); appID != "" {
+		id, err := primitive.ObjectIDFromHex(appID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid application_id"})
+			return
+		}
+		filter["application_id"] = id
+	}
+	if pipelineID := c.Query("pipeline_id"); pipelineID != "" {
+		filter["pipeline_id"] = pipelineID
+	}
+	if status := c.Query("status"); status != "" {
+		filter["status"] = status
+	}
+	if branch := c.Query("branch"); branch != "" {
+		filter["branch"] = branch
+	}
+	if name := c.Query("name"); name != "" {
+		filter["name"] = name
+	}
+
+	manifests, err := service.ManifestService.List(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if len(manifests) == 0 {
-		c.JSON(http.StatusOK, gin.H{"data": []model.Manifest{}})
+
+	paging, err := parsePagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
+
+	total := len(manifests)
+	manifests = paginateSlice(manifests, paging)
+	setPaginationHeaders(c, total, paging)
+
 	c.JSON(http.StatusOK, manifests)
 }
 

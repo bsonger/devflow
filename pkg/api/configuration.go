@@ -124,16 +124,29 @@ func (h *ConfigurationHandler) Delete(c *gin.Context) {
 // @Success 200 {array} model.Configuration
 // @Router  /api/v1/configurations [get]
 func (h *ConfigurationHandler) List(c *gin.Context) {
-	cfgs, err := service.ConfigurationService.List(c.Request.Context(), primitive.M{})
+	filter := primitive.M{}
+	if !includeDeleted(c) {
+		filter["deleted_at"] = primitive.M{"$exists": false}
+	}
+	if name := c.Query("name"); name != "" {
+		filter["name"] = name
+	}
+
+	cfgs, err := service.ConfigurationService.List(c.Request.Context(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if len(cfgs) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+	paging, err := parsePagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	total := len(cfgs)
+	cfgs = paginateSlice(cfgs, paging)
+	setPaginationHeaders(c, total, paging)
 
 	c.JSON(http.StatusOK, cfgs)
 }

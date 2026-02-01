@@ -126,6 +126,8 @@ definitions:
     - Failed
     - RollingBack
     - RolledBack
+    - Syncing
+    - SyncFailed
     type: string
     x-enum-varnames:
     - JobPending
@@ -134,6 +136,8 @@ definitions:
     - JobFailed
     - JobRollingBack
     - JobRolledBack
+    - JobSyncing
+    - JobSyncFailed
   model.Manifest:
     properties:
       application_id:
@@ -266,6 +270,13 @@ definitions:
     - StepRunning
     - StepSucceeded
     - StepFailed
+  pkg_api.UpdateActiveManifestRequest:
+    properties:
+      manifest_id:
+        type: string
+    required:
+    - manifest_id
+    type: object
 info:
   contact:
     email: devflow@example.com
@@ -368,6 +379,30 @@ paths:
               type: string
             type: object
       summary: 更新应用
+      tags:
+      - Application
+  /api/v1/applications/{id}/active_manifest:
+    patch:
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Active Manifest Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/pkg_api.UpdateActiveManifestRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新应用的 Active Manifest
       tags:
       - Application
   /api/v1/configurations:

@@ -164,6 +164,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/applications/{id}/active_manifest": {
+            "patch": {
+                "tags": [
+                    "Application"
+                ],
+                "summary": "更新应用的 Active Manifest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Active Manifest Data",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/pkg_api.UpdateActiveManifestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/configurations": {
             "get": {
                 "tags": [
@@ -787,7 +824,9 @@ const docTemplate = `{
                 "Succeeded",
                 "Failed",
                 "RollingBack",
-                "RolledBack"
+                "RolledBack",
+                "Syncing",
+                "SyncFailed"
             ],
             "x-enum-varnames": [
                 "JobPending",
@@ -795,7 +834,9 @@ const docTemplate = `{
                 "JobSucceeded",
                 "JobFailed",
                 "JobRollingBack",
-                "JobRolledBack"
+                "JobRolledBack",
+                "JobSyncing",
+                "JobSyncFailed"
             ]
         },
         "model.Manifest": {
@@ -988,6 +1029,17 @@ const docTemplate = `{
                 "StepSucceeded",
                 "StepFailed"
             ]
+        },
+        "pkg_api.UpdateActiveManifestRequest": {
+            "type": "object",
+            "required": [
+                "manifest_id"
+            ],
+            "properties": {
+                "manifest_id": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`

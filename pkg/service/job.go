@@ -3,11 +3,14 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/bsonger/devflow-common/client/argo"
 	"github.com/bsonger/devflow-common/client/logging"
 	"github.com/bsonger/devflow-common/client/mongo"
 	"github.com/bsonger/devflow-common/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	mongoDriver "go.mongodb.org/mongo-driver/mongo"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -120,6 +123,10 @@ func (s *jobService) Get(ctx context.Context, id primitive.ObjectID) (*model.Job
 		log.Error("get job failed", zap.Error(err))
 		return nil, err
 	}
+	if job.DeletedAt != nil {
+		log.Warn("job already deleted")
+		return nil, mongoDriver.ErrNoDocuments
+	}
 
 	log.Debug("job fetched")
 	return job, nil
@@ -130,6 +137,20 @@ func (s *jobService) Update(ctx context.Context, job *model.Job) error {
 		zap.String("job.id", job.ID.Hex()),
 		zap.String("operation", "update_job"),
 	)
+
+	current := &model.Job{}
+	if err := mongo.Repo.FindByID(ctx, current, job.ID); err != nil {
+		log.Error("load job failed", zap.Error(err))
+		return err
+	}
+	if current.DeletedAt != nil {
+		log.Warn("update skipped for deleted job")
+		return mongoDriver.ErrNoDocuments
+	}
+
+	job.CreatedAt = current.CreatedAt
+	job.DeletedAt = current.DeletedAt
+	job.WithUpdateDefault()
 
 	if err := mongo.Repo.Update(ctx, job); err != nil {
 		log.Error("update job failed", zap.Error(err))
@@ -146,8 +167,15 @@ func (s *jobService) Delete(ctx context.Context, id primitive.ObjectID) error {
 		zap.String("operation", "delete_job"),
 	)
 
-	job := &model.Job{}
-	if err := mongo.Repo.Delete(ctx, job, id); err != nil {
+	now := time.Now()
+	update := primitive.M{
+		"$set": primitive.M{
+			"deleted_at": now,
+			"updated_at": now,
+		},
+	}
+
+	if err := mongo.Repo.UpdateByID(ctx, &model.Job{}, id, update); err != nil {
 		log.Error("delete job failed", zap.Error(err))
 		return err
 	}
@@ -175,7 +203,8 @@ func (s *jobService) List(ctx context.Context, filter primitive.M) ([]*model.Job
 func (s *jobService) updateStatus(ctx context.Context, jobID primitive.ObjectID, status model.JobStatus) error {
 	update := primitive.M{
 		"$set": primitive.M{
-			"status": status,
+			"status":     status,
+			"updated_at": time.Now(),
 		},
 	}
 	return mongo.Repo.UpdateByID(ctx, &model.Job{}, jobID, update)

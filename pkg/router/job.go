@@ -11,4 +11,6 @@ func RegisterJobRoutes(rg *gin.RouterGroup) {
 	job.GET("", api.JobRouteApi.List)
 	job.GET("/:id", api.JobRouteApi.Get)
 	job.POST("", api.JobRouteApi.Create)
+	//job.PUT("/:id", api.JobRouteApi.Update)
+	//job.DELETE("/:id", api.JobRouteApi.Delete)
 }
